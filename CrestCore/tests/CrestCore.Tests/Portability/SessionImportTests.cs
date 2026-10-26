@@ -70,6 +70,22 @@ public sealed partial class BrowserContractsTests {
     }
 
     [Fact]
+    public void ArcKeepsTheNamesGivenToTabsAsRenamesOverTheirPageTitles() {
+        var work = ReadSession("arc", "arc-rich", "StorableSidebar.json")[0];
+
+        // A renamed tab keeps its page's title beneath the name, as a rename
+        // in Crest does, and one never renamed has no name of its own.
+        Assert.Equal([
+            ("Favorite", null, false),
+            ("Today", null, false),
+            ("today-two.example", null, false),
+            ("Saved", "Read later", true),
+            ("Deep title", "Deep title", true)
+        ], work.Tabs.Select(tab => (tab.Title, tab.CustomTitle, tab.TitleModifiedAt == ImportedAt)));
+        Assert.Equal("Read later", work.Tabs[3].DisplayTitle);
+    }
+
+    [Fact]
     public void ZenBringsItsSpacesWithTheirEssentialsFoldersAndThemes() {
         var spaces = ReadSession("zen", "zen-rich", Path.Combine("profile", "zen-sessions.jsonlz4"));
 

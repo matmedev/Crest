@@ -148,11 +148,15 @@ internal sealed record SessionDraft(int Ordinal, string? Name, IReadOnlyList<Ses
             }
             string title = ImportText.Bounded(tab.Title, tab.Address.Host, ImportText.MaximumTitle)
                 ?? throw new Rejected(new SessionOverLimits());
+            // The person's name for the tab is kept as a rename in Crest keeps it.
+            string? custom = string.IsNullOrWhiteSpace(tab.CustomTitle) ? null : tab.CustomTitle.Trim();
+            if (custom is not null && !ImportText.IsKept(custom, ImportText.MaximumTitle)) throw new Rejected(new SessionOverLimits());
             string url = tab.Address.Spelling;
             bool fits = folder is { } held && folderPlaces.TryGetValue(held, out var place) && place == placement;
             tabs.Add(new(ids.Next(), title, NativeContent: null, url, placement.IsDurable ? url : null,
                 placement.ImportedSymbol ?? TabIconMode.WebSymbol, placement,
-                fits ? folder : null, SplitGroupId: null, tab.LastActivatedAt ?? importedAt));
+                fits ? folder : null, SplitGroupId: null, tab.LastActivatedAt ?? importedAt, custom,
+                custom is null ? null : BrowserEditTimestamp.Normalize(importedAt)));
         }
         var splits = Split(ordered, tabs, ids);
 

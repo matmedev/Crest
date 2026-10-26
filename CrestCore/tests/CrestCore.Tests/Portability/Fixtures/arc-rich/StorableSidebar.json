@@ -10,7 +10,7 @@
     "folder",{"id":"folder","title":"Reading","childrenIds":["saved","sub"],"data":{"list":{}}},
     "sub",{"id":"sub","childrenIds":["deep"],"data":{"list":{}}},
     "deep",{"id":"deep","title":"Deep title","data":{"tab":{"savedURL":"https://deep.example/"}}},
-    "saved",{"id":"saved","data":{"tab":{"savedTitle":"Saved","savedURL":"https://saved.example/"}}},
+    "saved",{"id":"saved","title":"Read later","data":{"tab":{"savedTitle":"Saved","savedURL":"https://saved.example/"}}},
     "bad",{"id":"bad","data":{"tab":{"savedTitle":"Bad","savedURL":"file:///etc/hosts"}}}
   ],
   "spaces":[

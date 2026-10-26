@@ -6,9 +6,11 @@ namespace CrestCore.Application;
 
 /// A tab as a Crest browser-data file keeps it: identities as the file spells
 /// them, which an import replaces, and addresses spelled as an import keeps
-/// them.
+/// them. An import from another browser also brings the name the person gave
+/// the tab there.
 internal sealed record BrowserDataTab(Guid Id, string Title, NativeTabContent? NativeContent, string? Url, string? SavedUrl,
-    string Symbol, TabPlacement Placement, Guid? FolderId, Guid? SplitGroupId, DateTimeOffset LastActivatedAt) {
+    string Symbol, TabPlacement Placement, Guid? FolderId, Guid? SplitGroupId, DateTimeOffset LastActivatedAt,
+    string? CustomTitle = null, DateTimeOffset? TitleModifiedAt = null) {
     #region Static Variables
 
     /// What a tab showing neither a page nor a native view is called and shows.
@@ -35,7 +37,8 @@ internal sealed record BrowserDataTab(Guid Id, string Title, NativeTabContent? N
     /// it joins, which `folders` and `splits` map from the file's. Throws
     /// `ArchiveInvalid` for anything a Space would not keep.
     public TabState Materialize(Guid id, IReadOnlyDictionary<Guid, Guid> folders, IReadOnlyDictionary<Guid, Guid> splits) {
-        Require(ImportText.IsKept(Title, ImportText.MaximumTitle) && ImportText.IsKept(Symbol, ImportText.MaximumSymbol));
+        Require(ImportText.IsKept(Title, ImportText.MaximumTitle) && ImportText.IsKept(Symbol, ImportText.MaximumSymbol)
+            && (CustomTitle is null || ImportText.IsKept(CustomTitle, ImportText.MaximumTitle)));
         if (NativeContent is { } native)
             Require(ImportText.IsKept(native.Kind, MaximumNativeKind) && Url is null && SavedUrl is null);
         Require(ImportAddress.TryReadStored(Url, removesFragment: false, out var url));
@@ -50,7 +53,7 @@ internal sealed record BrowserDataTab(Guid Id, string Title, NativeTabContent? N
             NativeContent is null && Placement.IsDurable ? saved?.Spelling ?? address : null,
             isStartPage ? StartPageSymbol : Symbol, FaviconUrl: null, IconAccent: null, StoredIconMode: null, Placement, folder,
             SplitGroupId is { } split && splits.TryGetValue(split, out var group) ? group : null, LastActivatedAt,
-            PositionModifiedAt: null, CustomTitle: null, TitleModifiedAt: null, KeepsPageLoaded: false);
+            PositionModifiedAt: null, CustomTitle, TitleModifiedAt, KeepsPageLoaded: false);
     }
 
     /// A Start Page, which a Space that brings no tab shows.
