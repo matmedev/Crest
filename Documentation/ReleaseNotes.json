@@ -4593,6 +4593,10 @@
     "reopen-closed-tab-in-place": {
       "category": "improved",
       "message": "Reopening a closed tab puts it back where it was, including inside its folder."
+    },
+    "reopen-closed-tab-sync-placement": {
+      "category": "internal",
+      "message": "A synced archive keeps where a closed tab sat only for the close this device made, so a later close on another device is not reopened in the earlier place."
     }
   }
 }

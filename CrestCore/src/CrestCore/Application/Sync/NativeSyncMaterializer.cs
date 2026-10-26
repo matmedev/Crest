@@ -172,8 +172,13 @@ public static class NativeSyncMaterializer {
             .OrderBy(archived => archived.Tab.OrderToken, StringComparer.Ordinal).ThenBy(archived => archived.Id.ToString("D"), StringComparer.Ordinal);
         var result = remote.Select(archived => {
             byId.TryGetValue(archived.Id, out var previous);
-            return new ArchivedTabState(Tab(archived.Tab, previous?.Tab, archived: true), archived.ArchivedAt.Moment,
-                previous?.Reason ?? ArchiveReason.Received(archived.Reason.IsExplicitDeletion), previous?.PreviousTabId, previous?.NextTabId);
+            var moment = archived.ArchivedAt.Moment;
+            // The tabs it sat between belong to the close this device saw, not
+            // to a later one another device made.
+            var placed = previous is not null
+                && BrowserEditTimestamp.Normalize(previous.ArchivedAt) == BrowserEditTimestamp.Normalize(moment) ? previous : null;
+            return new ArchivedTabState(Tab(archived.Tab, previous?.Tab, archived: true), moment,
+                previous?.Reason ?? ArchiveReason.Received(archived.Reason.IsExplicitDeletion), placed?.PreviousTabId, placed?.NextTabId);
         }).ToList();
         var projected = result.Select(archived => archived.Tab.Id).ToHashSet();
         var localTabs = (local?.Tabs ?? []).Where(Portable).ToDictionary(tab => tab.Id);

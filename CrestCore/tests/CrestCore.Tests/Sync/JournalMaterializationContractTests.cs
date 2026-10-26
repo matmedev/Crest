@@ -141,6 +141,35 @@ public sealed partial class BrowserContractsTests {
         Assert.DoesNotContain(Fixed(102), ArchivedIds(materialized["archivedTabs"]));
     }
 
+    /// The open tabs a closed tab sat between stay on this device while the
+    /// cloud holds the same close, and go when another device closed it later.
+    [Theory]
+    [InlineData(500, true)]
+    [InlineData(600, false)]
+    public void AnArchiveKeepsWhereItSatOnlyForTheCloseThisDeviceMade(double remoteArchivedAt, bool kept) {
+        var session = OneSpaceSession();
+        var space = FirstSpace(session);
+        var closed = TabOf(Fixed(103), "Closed", "https://example.com/closed");
+        space["archivedTabs"] = new JsonArray(new JsonObject {
+            ["tab"] = closed.DeepClone(),
+            ["archivedAt"] = At(500),
+            ["reason"] = "closed",
+            ["previousTabID"] = SwiftId(Fixed(102))
+        });
+        var journal = new JournalUnderTest(Fixed(1_192));
+        journal.Merge(SavedRecord(SyncRecordKind.Space, SpaceValue(space), 1, Fixed(200)),
+            SavedRecord(SyncRecordKind.Tab, TabValue(space["tabs"]![0]!.AsObject(), Fixed(100)), 10, Fixed(1_190)),
+            SavedRecord(SyncRecordKind.Archive, new JsonObject {
+                ["tab"] = TabValue(closed, Fixed(100)),
+                ["archivedAt"] = At(remoteArchivedAt),
+                ["reason"] = "closed"
+            }, 20, Fixed(1_191)));
+
+        var archived = FirstSpace(journal.Materialize(session))["archivedTabs"]!.AsArray().Single()!;
+
+        Assert.Equal(kept ? Fixed(102) : null, StoredSessionCodec.OptionalIdentity(archived["previousTabID"]));
+    }
+
     [Fact]
     public void ANewerActivationDefeatsAStaleCleanupArchive() {
         var session = OneSpaceSession(activated: 300);
