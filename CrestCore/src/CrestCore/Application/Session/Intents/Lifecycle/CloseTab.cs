@@ -6,10 +6,12 @@ namespace CrestCore.Contracts;
 /// Closes a tab the way its section closes one: an open tab is archived, and
 /// a saved or pinned tab keeps its place and only puts its page away, back at
 /// its saved address when the app's preferences say so. A window that showed
-/// the tab returns to the tab it showed before. Refused with `LastStartPage`
+/// the tab returns to the tab it showed before, or to `ShowsTabId` when the
+/// Space still holds it. Refused with `LastStartPage`
 /// for the Start Page when it is its Space's only tab, which leaves only the
 /// window to close.
-public sealed record CloseTab(Guid WorkspaceId, Guid WindowId, Guid SpaceId, Guid TabId) : SessionIntent(WorkspaceId) {
+public sealed record CloseTab(Guid WorkspaceId, Guid WindowId, Guid SpaceId, Guid TabId, Guid? ShowsTabId = null)
+    : SessionIntent(WorkspaceId) {
     #region Actions - Session
 
     /// Closes the tab the way its section closes one: a saved or pinned tab
@@ -39,6 +41,8 @@ public sealed record CloseTab(Guid WorkspaceId, Guid WindowId, Guid SpaceId, Gui
             events = SessionTabEvents.None with { PutAway = new(WindowId, space.Id, tab.Id, KeepsState: !returns) };
         } else {
             var fallback = followUp.FallbackAfterDismissing(space.Id, tab.Id, space.Tabs.Select(candidate => candidate.Id).ToHashSet());
+            if (shown == tab.Id && ShowsTabId is { } next && next != tab.Id && space.Tabs.Any(candidate => candidate.Id == next))
+                fallback = next;
             selected = edited.DismissTabs([tab.Id], shown, fallback, turn.Now, deleting: false, ensureSelection: false,
                 resetArchivePlacement: false);
             edited.PruneSplitMetadata();

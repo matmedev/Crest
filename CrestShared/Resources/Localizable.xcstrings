@@ -2564,6 +2564,9 @@
         }
       }
     },
+    "Back returns to the opening tab" : {
+
+    },
     "Back to %@" : {
 
     },
@@ -3534,6 +3537,9 @@
           }
         }
       }
+    },
+    "Close and return to %@" : {
+
     },
     "Close Current Tab or Window" : {
       "localizations" : {

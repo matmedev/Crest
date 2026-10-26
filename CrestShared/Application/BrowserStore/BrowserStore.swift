@@ -243,7 +243,7 @@ final class BrowserStore {
         localSyncErrorDescription = nil
         lastWindow = WindowState(
             id: opening.id, workspaceID: UUID(), shownSpaceID: UUID(), shownTabs: [], splitColumnShares: [], cards: [],
-            unavailableCommands: [])
+            unavailableCommands: [], returnTabID: nil)
         lastSelectionScope = BrowserSelectionScope(spaceID: lastWindow.shownSpace, space: nil)
         let workspace = family.register(self)
         do {

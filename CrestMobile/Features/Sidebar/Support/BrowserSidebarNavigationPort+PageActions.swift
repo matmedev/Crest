@@ -16,6 +16,7 @@ extension BrowserSidebarNavigationPort {
     init(pageActions: (any MobilePageActions)?, showHistory: @escaping () -> Void) {
         self.init(
             canGoBack: { pageActions?.canGoBack == true },
+            backReturnTitle: { pageActions?.backReturnTitle },
             canGoForward: { pageActions?.canGoForward == true },
             backHistory: { pageActions?.backHistory ?? [] },
             forwardHistory: { pageActions?.forwardHistory ?? [] },

@@ -1,8 +1,13 @@
 import Foundation
 
 extension BrowserPlatformPage {
+    /// Whether going back does anything: it steps through the page's history,
+    /// or closes its tab and returns to the tab a link opened it from.
+    var canGoBack: Bool { live.canGoBack || corePage.returnTabID != nil }
+
     /// Steps back through the page's history as the core keeps it, first
-    /// leaving a failed navigation the page shows.
+    /// leaving a failed navigation the page shows. A tab a link opened, with
+    /// no earlier page, closes and returns to the tab it was opened from.
     func goBack() {
         refreshNavigationState()
         corePage.stepHistory(by: -1)

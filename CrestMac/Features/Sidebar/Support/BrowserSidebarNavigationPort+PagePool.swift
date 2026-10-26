@@ -11,6 +11,7 @@ extension BrowserSidebarNavigationPort {
     init(pages: BrowserPagePool, browser: BrowserStore, showHistory: @escaping () -> Void) {
         self.init(
             canGoBack: { pages.canGoBack },
+            backReturnTitle: { pages.backReturnTitle },
             canGoForward: { pages.canGoForward },
             backHistory: { pages.backHistory },
             forwardHistory: { pages.forwardHistory },

@@ -14,7 +14,7 @@ namespace CrestCore.Native;
 public static class ContractCodec {
     /// <summary>SHA-256 of the canonical contract schema.</summary>
     public static ReadOnlySpan<byte> Fingerprint => [
-        0x2e, 0xd4, 0xbb, 0xcf, 0xf3, 0x7d, 0xf6, 0x2f, 0x29, 0x89, 0x33, 0xd5, 0x21, 0x69, 0x58, 0xb8, 0x9d, 0x7f, 0x2a, 0x12, 0x80, 0x3b, 0x72, 0x87, 0x99, 0x66, 0x36, 0xdf, 0x66, 0xed, 0x13, 0x70
+        0x03, 0x02, 0x3f, 0x4b, 0x9b, 0x4e, 0x11, 0xa2, 0xb7, 0x18, 0x9c, 0xc4, 0x22, 0xf0, 0x8b, 0x57, 0x0c, 0x02, 0x41, 0x28, 0x51, 0xc2, 0x1e, 0xfe, 0xca, 0xd1, 0x56, 0xad, 0x39, 0x4b, 0xa5, 0xb9
     ];
 
     /// <summary>SHA-256 of the engine contract alone, which an engine binding registers with.</summary>
@@ -4356,6 +4356,7 @@ public static class ContractCodec {
             reader.ReadBool(),
             reader.ReadBool(),
             reader.ReadBool(),
+            reader.ReadBool(),
             ReadPalettePreferences(reader));
     }
 
@@ -4376,6 +4377,7 @@ public static class ContractCodec {
         writer.WriteBool(value.SplitFocusFollowsMouse);
         writer.WriteBool(value.AutomaticallyShowsDeveloperToolbar);
         writer.WriteBool(value.ShowsRecentTabs);
+        writer.WriteBool(value.ReturnsToOpenerOnBack);
         WritePalettePreferences(writer, value.Palette);
     }
 
@@ -5582,7 +5584,8 @@ public static class ContractCodec {
             reader.ReadGuid(),
             reader.ReadGuid(),
             reader.ReadGuid(),
-            reader.ReadGuid());
+            reader.ReadGuid(),
+            reader.ReadPresence() ? (Guid?)reader.ReadGuid() : null);
     }
 
     public static void WriteCloseTab(WireWriter writer, CloseTab value) {
@@ -5592,6 +5595,12 @@ public static class ContractCodec {
         writer.WriteGuid(value.WindowId);
         writer.WriteGuid(value.SpaceId);
         writer.WriteGuid(value.TabId);
+        if (value.ShowsTabId is { } presentShowsTabId) {
+            writer.WritePresence(true);
+            writer.WriteGuid(presentShowsTabId);
+        } else {
+            writer.WritePresence(false);
+        }
     }
 
     public static CloseTabs ReadCloseTabs(WireReader reader) {
@@ -12029,7 +12038,8 @@ public static class ContractCodec {
             ReadTabContent(reader),
             ReadTabPlacement(reader),
             reader.ReadPresence() ? (Guid?)reader.ReadGuid() : null,
-            reader.ReadBool());
+            reader.ReadBool(),
+            reader.ReadPresence() ? (Guid?)reader.ReadGuid() : null);
     }
 
     public static void WriteOpenTab(WireWriter writer, OpenTab value) {
@@ -12048,6 +12058,12 @@ public static class ContractCodec {
             writer.WritePresence(false);
         }
         writer.WriteBool(value.Shows);
+        if (value.OpenerTabId is { } presentOpenerTabId) {
+            writer.WritePresence(true);
+            writer.WriteGuid(presentOpenerTabId);
+        } else {
+            writer.WritePresence(false);
+        }
     }
 
     public static OpenWindow ReadOpenWindow(WireReader reader) {
@@ -12627,6 +12643,7 @@ public static class ContractCodec {
             reader.ReadGuid(),
             reader.ReadGuid(),
             reader.ReadPresence() ? (Guid?)reader.ReadGuid() : null,
+            reader.ReadGuid(),
             ReadEngineKind(reader),
             ReadPagePhase(reader),
             ReadPageLiveState(reader));
@@ -12644,6 +12661,7 @@ public static class ContractCodec {
         } else {
             writer.WritePresence(false);
         }
+        writer.WriteGuid(value.WindowId);
         WriteEngineKind(writer, value.Engine);
         WritePagePhase(writer, value.Phase);
         WritePageLiveState(writer, value.Live);
@@ -18991,7 +19009,8 @@ public static class ContractCodec {
             reader.ReadList(() => ReadShownTab(reader)),
             reader.ReadList(() => ReadSplitColumnShares(reader)),
             reader.ReadList(() => ReadShownCards(reader)),
-            reader.ReadList(() => ReadShortcutCommand(reader)));
+            reader.ReadList(() => ReadShortcutCommand(reader)),
+            reader.ReadPresence() ? (Guid?)reader.ReadGuid() : null);
     }
 
     public static void WriteWindowState(WireWriter writer, WindowState value) {
@@ -19015,6 +19034,12 @@ public static class ContractCodec {
         writer.WriteCount(value.UnavailableCommands.Count);
         foreach (var itemUnavailableCommands in value.UnavailableCommands) {
             WriteShortcutCommand(writer, itemUnavailableCommands);
+        }
+        if (value.ReturnTabId is { } presentReturnTabId) {
+            writer.WritePresence(true);
+            writer.WriteGuid(presentReturnTabId);
+        } else {
+            writer.WritePresence(false);
         }
     }
 

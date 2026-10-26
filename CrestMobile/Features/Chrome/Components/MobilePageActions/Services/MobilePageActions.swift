@@ -7,6 +7,9 @@ protocol MobilePageActions {
     var activePage: MobileBrowserPage? { get }
     var activeURL: URL? { get }
     var canGoBack: Bool { get }
+    /// The title of the tab going back returns to, closing the page's tab,
+    /// or nil when going back steps through the page's history.
+    var backReturnTitle: String? { get }
     var canGoForward: Bool { get }
     var backHistory: [BrowserNavigationHistoryItem] { get }
     var forwardHistory: [BrowserNavigationHistoryItem] { get }

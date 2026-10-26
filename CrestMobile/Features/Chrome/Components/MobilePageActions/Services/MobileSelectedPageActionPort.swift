@@ -52,7 +52,12 @@ struct MobileSelectedPageActionPort: MobilePageActions {
     }
 
     var canGoBack: Bool {
-        activePage?.live.canGoBack == true
+        activePage?.canGoBack == true
+    }
+
+    var backReturnTitle: String? {
+        guard let page = activePage, let tabID = page.corePage.returnTabID else { return nil }
+        return browser.spaceModel(page.spaceID)?.tabs.model(tabID)?.title
     }
 
     var canGoForward: Bool {

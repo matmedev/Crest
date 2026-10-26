@@ -7,7 +7,7 @@ import Foundation
 enum CoreCodec {
     /// SHA-256 of the canonical contract schema. The core refuses any other.
     static let fingerprint: [UInt8] = [
-        0x2e, 0xd4, 0xbb, 0xcf, 0xf3, 0x7d, 0xf6, 0x2f, 0x29, 0x89, 0x33, 0xd5, 0x21, 0x69, 0x58, 0xb8, 0x9d, 0x7f, 0x2a, 0x12, 0x80, 0x3b, 0x72, 0x87, 0x99, 0x66, 0x36, 0xdf, 0x66, 0xed, 0x13, 0x70
+        0x03, 0x02, 0x3f, 0x4b, 0x9b, 0x4e, 0x11, 0xa2, 0xb7, 0x18, 0x9c, 0xc4, 0x22, 0xf0, 0x8b, 0x57, 0x0c, 0x02, 0x41, 0x28, 0x51, 0xc2, 0x1e, 0xfe, 0xca, 0xd1, 0x56, 0xad, 0x39, 0x4b, 0xa5, 0xb9
     ]
     /// SHA-256 of the engine contract alone, which an engine binding registers with.
     static let engineFingerprint: [UInt8] = [
@@ -2824,8 +2824,9 @@ extension AppPreferences {
         let splitFocusFollowsMouse = try reader.readBool()
         let automaticallyShowsDeveloperToolbar = try reader.readBool()
         let showsRecentTabs = try reader.readBool()
+        let returnsToOpenerOnBack = try reader.readBool()
         let palette = try PalettePreferences(from: &reader)
-        self.init(startup: startup, offersTranslation: offersTranslation, automaticallyTranslates: automaticallyTranslates, translationRules: translationRules, checksSpelling: checksSpelling, automaticallyEntersPictureInPicture: automaticallyEntersPictureInPicture, savedTabClose: savedTabClose, savedTabFaviconReturnsToSavedURL: savedTabFaviconReturnsToSavedURL, splitFocusFollowsMouse: splitFocusFollowsMouse, automaticallyShowsDeveloperToolbar: automaticallyShowsDeveloperToolbar, showsRecentTabs: showsRecentTabs, palette: palette)
+        self.init(startup: startup, offersTranslation: offersTranslation, automaticallyTranslates: automaticallyTranslates, translationRules: translationRules, checksSpelling: checksSpelling, automaticallyEntersPictureInPicture: automaticallyEntersPictureInPicture, savedTabClose: savedTabClose, savedTabFaviconReturnsToSavedURL: savedTabFaviconReturnsToSavedURL, splitFocusFollowsMouse: splitFocusFollowsMouse, automaticallyShowsDeveloperToolbar: automaticallyShowsDeveloperToolbar, showsRecentTabs: showsRecentTabs, returnsToOpenerOnBack: returnsToOpenerOnBack, palette: palette)
     }
 
     func encode(into writer: inout WireWriter) {
@@ -2843,6 +2844,7 @@ extension AppPreferences {
         writer.writeBool(splitFocusFollowsMouse)
         writer.writeBool(automaticallyShowsDeveloperToolbar)
         writer.writeBool(showsRecentTabs)
+        writer.writeBool(returnsToOpenerOnBack)
         palette.encode(into: &writer)
     }
 }
@@ -4568,7 +4570,14 @@ extension CloseTab {
         let windowID = try reader.readUUID()
         let spaceID = try reader.readUUID()
         let tabID = try reader.readUUID()
-        self.init(workspaceID: workspaceID, windowID: windowID, spaceID: spaceID, tabID: tabID)
+        let showsTabID: UUID?
+        if try reader.readPresence() {
+            let showsTabIDValue = try reader.readUUID()
+            showsTabID = showsTabIDValue
+        } else {
+            showsTabID = nil
+        }
+        self.init(workspaceID: workspaceID, windowID: windowID, spaceID: spaceID, tabID: tabID, showsTabID: showsTabID)
     }
 
     func encode(into writer: inout WireWriter) {
@@ -4576,6 +4585,12 @@ extension CloseTab {
         writer.writeUUID(windowID)
         writer.writeUUID(spaceID)
         writer.writeUUID(tabID)
+        if let present0 = showsTabID {
+            writer.writePresence(true)
+            writer.writeUUID(present0)
+        } else {
+            writer.writePresence(false)
+        }
     }
 
     func encodeIntent(into writer: inout WireWriter) {
@@ -13952,7 +13967,14 @@ extension OpenTab {
             afterTabID = nil
         }
         let shows = try reader.readBool()
-        self.init(workspaceID: workspaceID, windowID: windowID, spaceID: spaceID, tabID: tabID, content: content, placement: placement, afterTabID: afterTabID, shows: shows)
+        let openerTabID: UUID?
+        if try reader.readPresence() {
+            let openerTabIDValue = try reader.readUUID()
+            openerTabID = openerTabIDValue
+        } else {
+            openerTabID = nil
+        }
+        self.init(workspaceID: workspaceID, windowID: windowID, spaceID: spaceID, tabID: tabID, content: content, placement: placement, afterTabID: afterTabID, shows: shows, openerTabID: openerTabID)
     }
 
     func encode(into writer: inout WireWriter) {
@@ -13969,6 +13991,12 @@ extension OpenTab {
             writer.writePresence(false)
         }
         writer.writeBool(shows)
+        if let present0 = openerTabID {
+            writer.writePresence(true)
+            writer.writeUUID(present0)
+        } else {
+            writer.writePresence(false)
+        }
     }
 
     func encodeIntent(into writer: inout WireWriter) {
@@ -15297,10 +15325,11 @@ extension PageState {
         } else {
             tabID = nil
         }
+        let windowID = try reader.readUUID()
         let engine = try EngineKind(from: &reader)
         let phase = try PagePhase(from: &reader)
         let live = try PageLiveState(from: &reader)
-        self.init(id: id, workspaceID: workspaceID, spaceID: spaceID, tabID: tabID, engine: engine, phase: phase, live: live)
+        self.init(id: id, workspaceID: workspaceID, spaceID: spaceID, tabID: tabID, windowID: windowID, engine: engine, phase: phase, live: live)
     }
 
     func encode(into writer: inout WireWriter) {
@@ -15313,6 +15342,7 @@ extension PageState {
         } else {
             writer.writePresence(false)
         }
+        writer.writeUUID(windowID)
         engine.encode(into: &writer)
         phase.encode(into: &writer)
         live.encode(into: &writer)
@@ -24606,7 +24636,14 @@ extension WindowState {
             let unavailableCommandsElement = try ShortcutCommand(from: &reader)
             unavailableCommands.append(unavailableCommandsElement)
         }
-        self.init(id: id, workspaceID: workspaceID, shownSpaceID: shownSpaceID, shownTabs: shownTabs, splitColumnShares: splitColumnShares, cards: cards, unavailableCommands: unavailableCommands)
+        let returnTabID: UUID?
+        if try reader.readPresence() {
+            let returnTabIDValue = try reader.readUUID()
+            returnTabID = returnTabIDValue
+        } else {
+            returnTabID = nil
+        }
+        self.init(id: id, workspaceID: workspaceID, shownSpaceID: shownSpaceID, shownTabs: shownTabs, splitColumnShares: splitColumnShares, cards: cards, unavailableCommands: unavailableCommands, returnTabID: returnTabID)
     }
 
     func encode(into writer: inout WireWriter) {
@@ -24628,6 +24665,12 @@ extension WindowState {
         writer.writeCount(unavailableCommands.count)
         for element0 in unavailableCommands {
             element0.encode(into: &writer)
+        }
+        if let present0 = returnTabID {
+            writer.writePresence(true)
+            writer.writeUUID(present0)
+        } else {
+            writer.writePresence(false)
         }
     }
 }

@@ -25,6 +25,10 @@ struct BrowserSidebarNavigationPort {
     /// Whether there is anywhere to go back to.
     let canGoBack: () -> Bool
 
+    /// The title of the tab going back returns to, closing the page's tab,
+    /// or nil when going back steps through the page's history.
+    let backReturnTitle: () -> String?
+
     /// Whether there is anywhere to go forward to.
     let canGoForward: () -> Bool
 

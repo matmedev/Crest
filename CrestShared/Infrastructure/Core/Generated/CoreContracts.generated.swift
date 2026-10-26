@@ -1066,6 +1066,7 @@ struct AppPreferences: Equatable, Sendable {
         splitFocusFollowsMouse: false,
         automaticallyShowsDeveloperToolbar: true,
         showsRecentTabs: true,
+        returnsToOpenerOnBack: true,
         palette: PalettePreferences(
             layout: PaletteLayout.sections,
             sources: [
@@ -1103,6 +1104,7 @@ struct AppPreferences: Equatable, Sendable {
     var splitFocusFollowsMouse: Bool
     var automaticallyShowsDeveloperToolbar: Bool
     var showsRecentTabs: Bool
+    var returnsToOpenerOnBack: Bool
     var palette: PalettePreferences
 }
 
@@ -1614,6 +1616,7 @@ struct CloseTab: Intent, SessionIntent, Equatable, Sendable {
     let windowID: UUID
     let spaceID: UUID
     let tabID: UUID
+    let showsTabID: UUID?
 }
 
 struct CloseTabs: Intent, SessionIntent, Equatable, Sendable {
@@ -4109,6 +4112,7 @@ struct OpenTab: Intent, SessionIntent, Equatable, Sendable {
     let placement: TabPlacement
     let afterTabID: UUID?
     let shows: Bool
+    let openerTabID: UUID?
 }
 
 struct OpenWindow: Intent, WindowIntent, Equatable, Sendable {
@@ -4458,6 +4462,7 @@ struct PageState: Equatable, Sendable, Identifiable {
     let workspaceID: UUID
     let spaceID: UUID
     let tabID: UUID?
+    let windowID: UUID
     let engine: EngineKind
     let phase: PagePhase
     let live: PageLiveState
@@ -7013,6 +7018,7 @@ struct WindowState: Equatable, Sendable, Identifiable {
     let splitColumnShares: [SplitColumnShares]
     let cards: [ShownCards]
     let unavailableCommands: [ShortcutCommand]
+    let returnTabID: UUID?
 }
 
 struct WindowToReopen: Query, Equatable, Sendable {
@@ -23691,6 +23697,10 @@ final class PageStateModel: ObservedModel, Identifiable {
         access(keyPath: \.tabID)
         return tabIDStorage
     }
+    var windowID: UUID {
+        access(keyPath: \.windowID)
+        return windowIDStorage
+    }
     var engine: EngineKind {
         access(keyPath: \.engine)
         return engineStorage
@@ -23707,6 +23717,7 @@ final class PageStateModel: ObservedModel, Identifiable {
     @ObservationIgnored private var workspaceIDStorage: UUID
     @ObservationIgnored private var spaceIDStorage: UUID
     @ObservationIgnored private var tabIDStorage: UUID?
+    @ObservationIgnored private var windowIDStorage: UUID
     @ObservationIgnored private var engineStorage: EngineKind
     @ObservationIgnored private var phaseStorage: PagePhase
     @ObservationIgnored private var liveStorage: PageLiveState
@@ -23717,6 +23728,7 @@ final class PageStateModel: ObservedModel, Identifiable {
             workspaceID: workspaceID,
             spaceID: spaceID,
             tabID: tabID,
+            windowID: windowID,
             engine: engine,
             phase: phase,
             live: live
@@ -23728,6 +23740,7 @@ final class PageStateModel: ObservedModel, Identifiable {
         workspaceIDStorage = value.workspaceID
         spaceIDStorage = value.spaceID
         tabIDStorage = value.tabID
+        windowIDStorage = value.windowID
         engineStorage = value.engine
         phaseStorage = value.phase
         liveStorage = value.live
@@ -23746,6 +23759,10 @@ final class PageStateModel: ObservedModel, Identifiable {
         if tabIDStorage != value.tabID {
             tabIDStorage = value.tabID
             withMutation(keyPath: \.tabID) {}
+        }
+        if windowIDStorage != value.windowID {
+            windowIDStorage = value.windowID
+            withMutation(keyPath: \.windowID) {}
         }
         if engineStorage != value.engine {
             engineStorage = value.engine

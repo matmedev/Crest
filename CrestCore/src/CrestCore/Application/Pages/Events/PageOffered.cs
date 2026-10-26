@@ -26,7 +26,8 @@ public sealed record PageOffered(Guid OfferId, Guid ProfileId, Guid? SourcePageI
     /// - A Quick Window's or Peek's page keeps the other pages it opens. The engine
     ///   closes the offered page, and the page that opened it loads its web
     ///   address, as a popup there does on every engine.
-    /// - A tab's page opens a tab after its own, in its Space and window.
+    /// - A tab's page opens a tab after its own, in its Space and window,
+    ///   which going back from the new tab returns to.
     /// - Any other page joins the window that holds it: the Space its engine
     ///   window was reserved for, or else the Space the window shows, after
     ///   the tab the window shows there.
@@ -56,8 +57,9 @@ public sealed record PageOffered(Guid OfferId, Guid ProfileId, Guid? SourcePageI
     /// whether a Space took it.
     private bool Adopted(Pages pages, Engine engine, Page? source, PageTurn turn) {
         Guid workspaceId, windowId, spaceId;
-        Guid? afterTabId;
+        Guid? afterTabId, openerTabId = null;
         if (source is { TabId: { } sourceTab }) {
+            openerTabId = sourceTab;
             (workspaceId, windowId, spaceId, afterTabId) = (source.WorkspaceId, source.WindowId, source.SpaceId, sourceTab);
         } else if (WindowId is { } holder && pages.Device.Showing(holder, SpaceId) is { } shown) {
             windowId = holder;
@@ -71,7 +73,7 @@ public sealed record PageOffered(Guid OfferId, Guid ProfileId, Guid? SourcePageI
         var tabId = pages.Ids.Next();
         try {
             workspace.Handle(new OpenTab(workspaceId, windowId, space.Id, tabId,
-                new TabContent(Url, View: null, Title: null), TabPlacement.Current, afterTabId, Foreground),
+                new TabContent(Url, View: null, Title: null), TabPlacement.Current, afterTabId, Foreground, openerTabId),
                 pages.Clock.Now, pages.Ids, pages);
         } catch (Rejected) {
             // The Space's tabs are full, or the address is one no tab shows.

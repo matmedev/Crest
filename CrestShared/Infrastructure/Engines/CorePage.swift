@@ -36,6 +36,18 @@ final class CorePage {
     /// holds the page.
     var live: PageLiveState { state?.live ?? .blank }
 
+    /// The tab going back returns to, closing this page's tab, while the page
+    /// has no earlier entry: the one the window that hosts the page names
+    /// while it shows the page's tab (see the core's `WindowState`). Nil when
+    /// going back steps through the page's history, or does nothing.
+    var returnTabID: UUID? {
+        guard let state, let tabID = state.tabID, !live.canGoBack,
+            let window = core?.state.windows[state.windowID],
+            window.shownTabID(in: window.shownSpaceID) == tabID
+        else { return nil }
+        return window.returnTabID
+    }
+
     /// The registered engines this page can move to: every one but its own.
     /// Empty before the core holds the page or while one engine is registered.
     var otherEngines: [EngineKind] {

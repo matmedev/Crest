@@ -83,6 +83,13 @@ final class BrowserAppPreferenceStore {
         set { set { $0.showsRecentTabs = newValue } }
     }
 
+    /// Whether going back on a tab a link opened, with no earlier page, closes
+    /// it and returns to the tab that opened it.
+    var returnsToOpenerOnBack: Bool {
+        get { preferences.returnsToOpenerOnBack }
+        set { set { $0.returnsToOpenerOnBack = newValue } }
+    }
+
     /// How the command palette ranks and arranges what it offers.
     var palette: PalettePreferences {
         get { preferences.palette }

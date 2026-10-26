@@ -5,9 +5,10 @@ namespace CrestCore.Application;
 
 /// One of this device's windows and what it shows: the Space on screen, the
 /// tab it shows in each Space it has shown (or none), the column shares of the
-/// split groups it resized, and each Space's recently shown tabs, which choose
-/// the tab to show when the shown one is dismissed. The device serializes
-/// every call.
+/// split groups it resized, each Space's recently shown tabs, which choose
+/// the tab to show when the shown one is dismissed, and the tab a link opened
+/// each tab from, which going back returns to. The device serializes every
+/// call.
 internal sealed class Window {
     #region Variables
 
@@ -26,6 +27,9 @@ internal sealed class Window {
     private readonly HashSet<(Guid SpaceId, Guid TabId)> unseen;
     /// The tabs in `recent`, by Space, that another window took over.
     private readonly HashSet<(Guid SpaceId, Guid TabId)> departed;
+    /// The tab a link in this window opened each tab from, by Space. Kept in
+    /// memory only.
+    private readonly Dictionary<(Guid SpaceId, Guid TabId), Guid> openers;
 
     public Guid Id { get; }
     public Guid WorkspaceId { get; }
@@ -42,7 +46,8 @@ internal sealed class Window {
 
     private Window(Guid id, Guid workspaceId, bool saved, Guid shownSpaceId, Dictionary<Guid, Guid?> tabs,
         Dictionary<Guid, IReadOnlyList<double>> shares, Dictionary<Guid, List<Guid>> recent,
-        HashSet<(Guid SpaceId, Guid TabId)> unseen, HashSet<(Guid SpaceId, Guid TabId)> departed) {
+        HashSet<(Guid SpaceId, Guid TabId)> unseen, HashSet<(Guid SpaceId, Guid TabId)> departed,
+        Dictionary<(Guid SpaceId, Guid TabId), Guid> openers) {
         Id = id;
         WorkspaceId = workspaceId;
         Saved = saved;
@@ -52,16 +57,17 @@ internal sealed class Window {
         this.recent = recent;
         this.unseen = unseen;
         this.departed = departed;
+        this.openers = openers;
     }
 
     /// A window that shows what `record` kept.
     public static Window Restoring(SavedWindow record, Guid workspaceId) => new(record.Id, workspaceId, saved: true,
         record.ShownSpaceId, record.Tabs.ToDictionary(tab => tab.SpaceId, tab => tab.TabId),
-        record.Shares.ToDictionary(group => group.GroupId, group => group.Shares), [], [], []);
+        record.Shares.ToDictionary(group => group.GroupId, group => group.Shares), [], [], [], []);
 
     /// A window that starts as `other` shows, without its split columns.
     public static Window Copying(Window other, Guid id, bool saved) =>
-        new(id, other.WorkspaceId, saved, other.ShownSpaceId, new(other.tabs), [], [], [], []);
+        new(id, other.WorkspaceId, saved, other.ShownSpaceId, new(other.tabs), [], [], [], [], []);
 
     /// A window on `session`'s launch Space: its default Space unless that is
     /// being deleted, else the first Space. `legacyTabs` are the tabs an older
@@ -71,7 +77,7 @@ internal sealed class Window {
         var launch = LaunchSpace(session);
         var window = new Window(id, workspaceId, saved, launch?.Id ?? Guid.Empty,
             legacyTabs.Where(entry => session.Spaces.Any(space => space.Id == entry.Key && Contains(space, entry.Value)))
-                .ToDictionary(entry => entry.Key, entry => (Guid?)entry.Value), [], [], [], []);
+                .ToDictionary(entry => entry.Key, entry => (Guid?)entry.Value), [], [], [], [], []);
         if (launch is not null) window.ShowSpace(launch);
         return window;
     }
@@ -85,10 +91,11 @@ internal sealed class Window {
     }
 
     /// What the window shows over `session`, as the platform reads it: what
-    /// it chose to show, the cards its content shows for the tab it shows, and
-    /// the commands it cannot run now. A window over a private workspace keeps
-    /// nothing, which its commands read.
-    public WindowState State(SessionState session, bool isPrivate) {
+    /// it chose to show, the cards its content shows for the tab it shows, the
+    /// commands it cannot run now, and the tab going back from the shown tab
+    /// returns to when `returnsToOpener`. A window over a private workspace
+    /// keeps nothing, which its commands read.
+    public WindowState State(SessionState session, bool isPrivate, bool returnsToOpener) {
         ArgumentNullException.ThrowIfNull(session);
         var space = Showable(session).FirstOrDefault(candidate => candidate.Id == ShownSpaceId);
         var shown = space is not null && Tab(space.Id) is { } tabId ? space.Tabs.FirstOrDefault(tab => tab.Id == tabId) : null;
@@ -101,7 +108,8 @@ internal sealed class Window {
         return new(Id, WorkspaceId, ShownSpaceId,
             [.. tabs.OrderBy(entry => entry.Key).Select(entry => new ShownTab(entry.Key, entry.Value))],
             [.. shares.OrderBy(entry => entry.Key).Select(entry => new SplitColumnShares(entry.Key, entry.Value))],
-            cards, [.. ShortcutCommand.All.Where(command => !command.IsAvailable(facts))]);
+            cards, [.. ShortcutCommand.All.Where(command => !command.IsAvailable(facts))],
+            returnsToOpener && space is not null && shown is not null ? ReturnTab(space, shown.Id) : null);
     }
 
     /// The tabs the window's content shows on screen over `session`: the cards
@@ -124,7 +132,7 @@ internal sealed class Window {
 
     /// A copy a command reads while the device keeps editing the window.
     public Window Snapshot() => new(Id, WorkspaceId, Saved, ShownSpaceId, new(tabs), new(shares),
-        recent.ToDictionary(entry => entry.Key, entry => new List<Guid>(entry.Value)), [.. unseen], [.. departed]);
+        recent.ToDictionary(entry => entry.Key, entry => new List<Guid>(entry.Value)), [.. unseen], [.. departed], new(openers));
 
     #endregion
 
@@ -185,6 +193,7 @@ internal sealed class Window {
         recent.Clear();
         unseen.Clear();
         departed.Clear();
+        openers.Clear();
     }
 
     /// Shows `tabId` in its Space, moving the window there when `moves`, or
@@ -217,6 +226,7 @@ internal sealed class Window {
     public void Apply(WindowFollowUp followUp) {
         foreach (var (spaceId, tabId) in followUp.Dismissed)
             if (recent.TryGetValue(spaceId, out var history)) history.Remove(tabId);
+        foreach (var (spaceId, tabId, openerId) in followUp.Opened) openers[(spaceId, tabId)] = openerId;
         foreach (var (spaceId, tabId) in followUp.Tabs) {
             tabs[spaceId] = tabId;
             if (tabId is { } shown) departed.Remove((spaceId, shown));
@@ -239,7 +249,8 @@ internal sealed class Window {
     /// Repairs the window after `session` changed under it: a tab that is gone shows nothing, a
     /// Space that is gone or being deleted gives way to the first remaining
     /// one on its fallback tab, split shares survive only while their group
-    /// renders with as many columns, and the history forgets what is gone.
+    /// renders with as many columns, and the history and the tabs links opened
+    /// forget what is gone.
     public void Repair(SessionState session) {
         var spaces = session.Spaces.ToDictionary(space => space.Id);
         foreach (var (spaceId, tabId) in tabs.ToArray()) {
@@ -254,6 +265,8 @@ internal sealed class Window {
             if (!spaces.TryGetValue(spaceId, out var space)) recent.Remove(spaceId);
             else history.RemoveAll(tabId => !Contains(space, tabId));
         }
+        foreach (var key in openers.Keys.ToArray())
+            if (!spaces.TryGetValue(key.SpaceId, out var space) || !Contains(space, key.TabId)) openers.Remove(key);
         foreach (var spaceId in tabs.Keys) Remember(spaceId);
     }
 
@@ -277,6 +290,24 @@ internal sealed class Window {
         if (history.Count > 0 && history[^1] == tabId) return;
         history.Remove(tabId);
         history.Add(tabId);
+    }
+
+    #endregion
+
+    #region Actions - Openers
+
+    /// The tab going back from `tabId` in `space` returns to: the tab a link
+    /// in this window opened it from, while `space` still holds both and no
+    /// other window took the opener over. Only an open tab outside a split
+    /// returns; a pinned or saved one never closes this way. Null when none
+    /// qualifies.
+    public Guid? ReturnTab(SpaceState space, Guid tabId) {
+        ArgumentNullException.ThrowIfNull(space);
+        if (!openers.TryGetValue((space.Id, tabId), out var openerId) || openerId == tabId || !Contains(space, openerId)
+            || departed.Contains((space.Id, openerId)))
+            return null;
+        var tab = space.Tabs.FirstOrDefault(candidate => candidate.Id == tabId);
+        return tab is { Placement.IsDurable: false, SplitGroupId: null } ? openerId : null;
     }
 
     #endregion

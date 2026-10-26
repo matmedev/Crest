@@ -313,7 +313,13 @@ extension BrowserPageOwner {
 // MARK: - Page commands
 
 extension BrowserPageOwner {
-    var canGoBack: Bool { activePage?.live.canGoBack == true }
+    var canGoBack: Bool { activePage?.canGoBack == true }
+    /// The title of the tab going back returns to, closing the active page's
+    /// tab, or nil when going back steps through its history.
+    var backReturnTitle: String? {
+        guard let page = activePage, let tabID = page.corePage.returnTabID else { return nil }
+        return browser.spaceModel(page.spaceID)?.tabs.model(tabID)?.title
+    }
     var canGoForward: Bool { activePage?.live.canGoForward == true }
     var backHistory: [BrowserNavigationHistoryItem] { activePage?.backHistory ?? [] }
     var forwardHistory: [BrowserNavigationHistoryItem] { activePage?.forwardHistory ?? [] }

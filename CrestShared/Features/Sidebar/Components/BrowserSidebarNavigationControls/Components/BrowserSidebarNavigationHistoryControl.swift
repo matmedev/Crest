@@ -14,7 +14,7 @@ struct BrowserSidebarNavigationHistoryControl: View {
         .accessibilityLabel(Text(direction.accessibilityLabel))
         .accessibilityIdentifier(direction.accessibilityIdentifier)
         .disabled(!direction.isAvailable(port))
-        .help(Text(direction.tooltip))
+        .help(help)
         .modifier(
             BrowserPlatformNavigationHistoryMenuModifier(
                 items: { direction.history(port) },
@@ -23,6 +23,13 @@ struct BrowserSidebarNavigationHistoryControl: View {
                 showFullHistory: port.showHistory
             )
         )
+    }
+
+    /// The tooltip, naming the tab going this way returns to when it closes
+    /// the page's tab.
+    private var help: Text {
+        guard let title = direction.returnTitle(port) else { return Text(direction.tooltip) }
+        return Text("Close and return to \(title)")
     }
 
     private func navigate() {

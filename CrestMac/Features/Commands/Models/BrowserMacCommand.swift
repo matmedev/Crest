@@ -30,7 +30,7 @@ struct BrowserMacCommand {
     static let closeWindow = BrowserMacCommand(
         .closeWindow, withoutWindow: .closesShellWindow, run: { $0.closeKeyWindow() })
     static let back = BrowserMacCommand(
-        .back, actsOnPage: true, isAvailable: { $0.commandPage?.live.canGoBack == true },
+        .back, actsOnPage: true, isAvailable: { $0.commandPage?.canGoBack == true },
         run: { $0.commandPage?.goBack() })
     static let forward = BrowserMacCommand(
         .forward, actsOnPage: true, isAvailable: { $0.commandPage?.live.canGoForward == true },

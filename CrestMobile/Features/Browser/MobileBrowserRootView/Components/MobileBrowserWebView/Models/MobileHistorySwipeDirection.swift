@@ -2,7 +2,9 @@ import UIKit
 
 /// Which way a swipe in from a page's edge steps through its history: in from
 /// the leading edge goes back, in from the trailing edge goes forward, as in
-/// Safari. Each step goes through the core's history, as the toolbar's do.
+/// Safari. Each step goes through the core's history, as the toolbar's do. A
+/// tab a link opened, with no earlier page, closes going back and returns to
+/// the tab it was opened from.
 @MainActor
 struct MobileHistorySwipeDirection {
     // MARK: - Static Variables
@@ -10,13 +12,15 @@ struct MobileHistorySwipeDirection {
     static let back = MobileHistorySwipeDirection(
         startsAtLeadingEdge: true,
         systemImage: "chevron.backward",
-        isAvailable: { $0.live.canGoBack },
+        closingSystemImage: "xmark",
+        isAvailable: { $0.canGoBack },
         step: { $0.goBack() }
     )
 
     static let forward = MobileHistorySwipeDirection(
         startsAtLeadingEdge: false,
         systemImage: "chevron.forward",
+        closingSystemImage: nil,
         isAvailable: { $0.live.canGoForward },
         step: { $0.goForward() }
     )
@@ -29,6 +33,9 @@ struct MobileHistorySwipeDirection {
     let startsAtLeadingEdge: Bool
     /// The chevron shown beside the page while the swipe is under way.
     let systemImage: String
+    /// The symbol shown instead while the step closes the page's tab, if this
+    /// way can.
+    private let closingSystemImage: String?
     private let availability: (MobileBrowserPage) -> Bool
     private let takeStep: (MobileBrowserPage) -> Void
 
@@ -37,11 +44,13 @@ struct MobileHistorySwipeDirection {
     private init(
         startsAtLeadingEdge: Bool,
         systemImage: String,
+        closingSystemImage: String?,
         isAvailable: @escaping (MobileBrowserPage) -> Bool,
         step: @escaping (MobileBrowserPage) -> Void
     ) {
         self.startsAtLeadingEdge = startsAtLeadingEdge
         self.systemImage = systemImage
+        self.closingSystemImage = closingSystemImage
         availability = isAvailable
         takeStep = step
     }
@@ -87,7 +96,14 @@ struct MobileHistorySwipeDirection {
 
     // MARK: - Actions - History
 
-    /// Whether `page` has an entry this way in the core's history.
+    /// The symbol shown beside `page` while the swipe is under way: the
+    /// closing one when the step closes its tab.
+    func systemImage(on page: MobileBrowserPage) -> String {
+        page.corePage.returnTabID == nil ? systemImage : closingSystemImage ?? systemImage
+    }
+
+    /// Whether `page` can step this way: an entry in the core's history, or
+    /// the tab it returns to going back.
     func isAvailable(on page: MobileBrowserPage) -> Bool {
         availability(page)
     }

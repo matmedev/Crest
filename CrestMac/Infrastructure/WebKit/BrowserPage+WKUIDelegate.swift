@@ -55,6 +55,18 @@ extension BrowserPage: WKUIDelegate {
         }
     }
 
+    /// WebKit reports the scroll events a page left alone only through this
+    /// desktop SPI. Its own swipe walks only its history, so a two-finger
+    /// swipe back on a tab with no earlier page arrives here, and returns to
+    /// the tab a link opened it from when the core names one.
+    @objc(_webView:didNotHandleWheelEvent:)
+    func webView(_ webView: WKWebView, didNotHandleWheelEvent event: NSEvent) {
+        guard webView === self.webKitView, let view = webView as? BrowserDesktopWebView,
+            view.returnSwipe.returns(after: event, canReturn: corePage.returnTabID != nil)
+        else { return }
+        goBack()
+    }
+
     /// Native PiP's Restore action asks the embedder to reveal its document,
     /// and WebKit returns the video inline itself. The ordinary Close action
     /// does not send this callback. Fullscreen also uses it, so only a

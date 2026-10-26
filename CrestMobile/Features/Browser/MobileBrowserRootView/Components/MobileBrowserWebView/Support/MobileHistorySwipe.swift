@@ -199,7 +199,8 @@ final class MobileHistorySwipe: NSObject, UIGestureRecognizerDelegate {
 
     private func setArmed(_ isArmed: Bool, direction: MobileHistorySwipeDirection) {
         self.isArmed = isArmed
-        indicator.configuration = indicatorConfiguration(systemImage: direction.systemImage, isArmed: isArmed)
+        let systemImage = page.map(direction.systemImage(on:)) ?? direction.systemImage
+        indicator.configuration = indicatorConfiguration(systemImage: systemImage, isArmed: isArmed)
     }
 
     private func indicatorConfiguration(systemImage: String, isArmed: Bool) -> some UIContentConfiguration {

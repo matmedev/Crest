@@ -6,11 +6,13 @@ namespace CrestCore.Contracts;
 /// Opens a tab, `TabId`, showing `Content` in `Placement`'s section of a
 /// Space: after the tab `AfterTabId` names and outside its split, or where its
 /// section puts a new tab. When `Shows`, the window that asked shows the tab
-/// and its Space. Refused with `TabLimitReached` or `PinnedTabsFull` when the
+/// and its Space. `OpenerTabId` names the tab of the Space a link opened it
+/// from, which going back from it in that window returns to while it has no
+/// earlier page. Refused with `TabLimitReached` or `PinnedTabsFull` when the
 /// Space or the section is full, and with `UnsupportedAddress` for an address
 /// a page cannot load.
 public sealed record OpenTab(Guid WorkspaceId, Guid WindowId, Guid SpaceId, Guid TabId, TabContent Content, TabPlacement Placement,
-    Guid? AfterTabId, bool Shows) : SessionIntent(WorkspaceId) {
+    Guid? AfterTabId, bool Shows, Guid? OpenerTabId = null) : SessionIntent(WorkspaceId) {
     #region Actions - Session
 
     /// Opens the tab, which the issuing window shows when the intent asks.
@@ -23,6 +25,7 @@ public sealed record OpenTab(Guid WorkspaceId, Guid WindowId, Guid SpaceId, Guid
         edited.InsertTab(tab, AfterTabId is { } origin ? edited.InsertionIndexAfter(origin) : null);
         var followUp = new WindowFollowUp(workspace.IssuingWindow(WindowId));
         if (Shows) followUp.ShowTab(space.Id, tab.Id).ShowSpace(space.Id);
+        if (OpenerTabId is { } opener && space.Tabs.Any(candidate => candidate.Id == opener)) followUp.Open(space.Id, tab.Id, opener);
         return new(turn.Basis.Replacing(edited.Capture(space)), SyncStaging.Creation, followUp);
     }
 

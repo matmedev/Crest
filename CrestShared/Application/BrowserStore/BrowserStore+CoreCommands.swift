@@ -68,16 +68,18 @@ extension BrowserStore {
     /// Opens a tab showing `content` in `placement`'s section and answers its
     /// identity, or nil when the core refused it. The core places a tab
     /// opened from `origin` after it and outside its split, resolves its
-    /// address and names a page it was given no title for.
+    /// address and names a page it was given no title for. Going back from a
+    /// tab a link in `opener` opened returns there while it has no earlier
+    /// page.
     @discardableResult
     func openSessionTab(
         _ content: TabContent, in spaceID: UUID, placement: TabPlacement = .current,
-        insertingAfter origin: UUID? = nil, shouldSelect: Bool = true
+        insertingAfter origin: UUID? = nil, shouldSelect: Bool = true, openedFrom opener: UUID? = nil
     ) -> UUID? {
         let id = UUID()
         let opening = OpenTab(
             workspaceID: family.workspaceID, windowID: windowID, spaceID: spaceID, tabID: id,
-            content: content, placement: placement, afterTabID: origin, shows: shouldSelect)
+            content: content, placement: placement, afterTabID: origin, shows: shouldSelect, openerTabID: opener)
         return family.perform(opening, from: self) == nil ? nil : id
     }
 
@@ -89,7 +91,7 @@ extension BrowserStore {
         family.perform(
             CloseTab(
                 workspaceID: family.workspaceID, windowID: windowID, spaceID: spaceID,
-                tabID: id),
+                tabID: id, showsTabID: nil),
             from: self) != nil
     }
 
@@ -97,7 +99,7 @@ extension BrowserStore {
     /// the Start Page that is its Space's only tab.
     func closingLeavesOnlyTheWindow(_ id: UUID, in spaceID: UUID) -> Bool {
         let closing = CloseTab(
-            workspaceID: family.workspaceID, windowID: windowID, spaceID: spaceID, tabID: id)
+            workspaceID: family.workspaceID, windowID: windowID, spaceID: spaceID, tabID: id, showsTabID: nil)
         guard case .lastStartPage = family.refusal(of: closing, from: self) else { return false }
         return true
     }

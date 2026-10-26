@@ -9,13 +9,14 @@ struct BrowserSidebarNavigationControl: Hashable, Sendable {
     static let back = BrowserSidebarNavigationControl(
         name: "back", systemImage: "chevron.left", accessibilityLabel: "Back",
         accessibilityIdentifier: "browser-back-control", tooltip: "Back (⌘[)", emptyHistoryTitle: "No Earlier Pages",
-        isAvailable: { $0.canGoBack() }, history: { $0.backHistory() }, navigate: { $0.goBack() },
-        navigateToItem: { $0.goBackToHistoryItem($1) })
+        isAvailable: { $0.canGoBack() }, returnTitle: { $0.backReturnTitle() }, history: { $0.backHistory() },
+        navigate: { $0.goBack() }, navigateToItem: { $0.goBackToHistoryItem($1) })
     static let forward = BrowserSidebarNavigationControl(
         name: "forward", systemImage: "chevron.right", accessibilityLabel: "Forward",
         accessibilityIdentifier: "browser-forward-control", tooltip: "Forward (⌘])",
         emptyHistoryTitle: "No Later Pages",
-        isAvailable: { $0.canGoForward() }, history: { $0.forwardHistory() }, navigate: { $0.goForward() },
+        isAvailable: { $0.canGoForward() }, returnTitle: { _ in nil }, history: { $0.forwardHistory() },
+        navigate: { $0.goForward() },
         navigateToItem: { $0.goForwardToHistoryItem($1) })
 
     let name: String
@@ -31,6 +32,10 @@ struct BrowserSidebarNavigationControl: Hashable, Sendable {
 
     /// Whether there is anywhere to go in this direction.
     let isAvailable: @MainActor @Sendable (BrowserSidebarNavigationPort) -> Bool
+
+    /// The title of the tab going this way returns to, closing the page's
+    /// tab, or nil when it walks the page's history.
+    let returnTitle: @MainActor @Sendable (BrowserSidebarNavigationPort) -> String?
 
     /// The pages in this direction, nearest first.
     let history: @MainActor @Sendable (BrowserSidebarNavigationPort) -> [BrowserNavigationHistoryItem]

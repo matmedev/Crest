@@ -108,4 +108,61 @@ public sealed partial class BrowserContractsTests {
         app.Send(new DiscardStagedLink(Guid.NewGuid(), link));
         Assert.Equal(delivered + 1, binding.Commands.Count);
     }
+
+    [Fact]
+    public void GoingBackFromATabALinkOpenedWithNoEarlierPageClosesItAndReturnsToItsOpener() {
+        var session = TwoSpaceSession();
+        var (space, profile) = (SpaceId(session["spaces"]![0]!), ProfileId(session["spaces"]![0]!));
+        var (app, engine, _, workspace, window) = PageHost(session);
+        using var disposal = app;
+        var (sourceTab, source) = LiveTab(app, engine, workspace, window, space);
+        (Guid Tab, Guid Page) Linked() {
+            app.Report(engine, new PageOffered(Guid.NewGuid(), profile, source, window, SpaceId: null, "https://linked.example/",
+                Foreground: true));
+            var adopted = Assert.Single(app.Drain().OfType<OfferedPageAdopted>());
+            app.Report(engine, new PageCreated(adopted.PageId));
+            app.Drain();
+            return (adopted.TabId, adopted.PageId);
+        }
+        Guid? ReturnTab(IReadOnlyList<Change> changes) => changes.OfType<WindowChanged>().Last(change => change.Window.Id == window).Window
+            .ReturnTabId;
+        void ReturnsToOpener(bool returns) {
+            var preferences = app.Workspace(workspace).Current.AppPreferences ?? AppPreferences.Default;
+            app.Send(new SetAppPreferences(workspace, preferences with { ReturnsToOpenerOnBack = returns }));
+        }
+
+        // The window names the opener while it shows the tab, and going back
+        // closes the tab and shows its opener, though another tab was shown
+        // since.
+        var (linked, page) = Linked();
+        LiveTab(app, engine, workspace, window, space, "https://other.example/");
+        Assert.Equal(sourceTab, ReturnTab(app.Send(new ShowTab(window, space, linked))));
+        var back = app.Send(new StepHistory(page, -1));
+        Assert.DoesNotContain(CurrentTabs(app, workspace, space), tab => tab.Id == linked);
+        Assert.Equal(sourceTab, ShownTab(back, window, space));
+
+        // With the preference off, going back keeps the tab.
+        (linked, page) = Linked();
+        ReturnsToOpener(false);
+        Assert.Null(ReturnTab(app.Send(new ShowTab(window, space, sourceTab)).Concat(app.Send(new ShowTab(window, space, linked))).ToList()));
+        app.Send(new StepHistory(page, -1));
+        Assert.Contains(CurrentTabs(app, workspace, space), tab => tab.Id == linked);
+        ReturnsToOpener(true);
+
+        // So does a tab whose opener another window took over.
+        var other = Guid.NewGuid();
+        app.Send(new OpenWindow(other, workspace, Saved: false, null, null, [], RestoresTabs: true));
+        Assert.Null(ReturnTab(app.Send(new MoveTabToWindow(workspace, window, space, sourceTab, other))));
+        app.Send(new StepHistory(page, -1));
+        Assert.Contains(CurrentTabs(app, workspace, space), tab => tab.Id == linked);
+
+        // Once this window shows the opener again, the tab returns there again.
+        app.Send(new ShowTab(window, space, sourceTab));
+        Assert.Equal(sourceTab, ReturnTab(app.Send(new ShowTab(window, space, linked))));
+
+        // A tab whose opener closed keeps its place too.
+        Assert.Null(ReturnTab(app.Send(new CloseTab(workspace, window, space, sourceTab))));
+        app.Send(new StepHistory(page, -1));
+        Assert.Contains(CurrentTabs(app, workspace, space), tab => tab.Id == linked);
+    }
 }

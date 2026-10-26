@@ -20,7 +20,7 @@ final class CoreReadModelTests: XCTestCase {
             shownTabs: [ShownTab(spaceID: UUID(), tabID: UUID())],
             splitColumnShares: [SplitColumnShares(groupID: UUID(), shares: [0.5, 0.5])],
             cards: [ShownCards(spaceID: UUID(), tabIDs: [UUID(), UUID()], splitGroupID: UUID())],
-            unavailableCommands: [.duplicateTab, .archiveTab])
+            unavailableCommands: [.duplicateTab, .archiveTab], returnTabID: UUID())
         let model = WindowStateModel(value)
         let stored = Set(Mirror(reflecting: model).children.compactMap(\.label))
         for case let field? in Mirror(reflecting: value).children.map(\.label) {
@@ -32,7 +32,7 @@ final class CoreReadModelTests: XCTestCase {
         let next = WindowState(
             id: value.id, workspaceID: UUID(), shownSpaceID: UUID(),
             shownTabs: [ShownTab(spaceID: UUID(), tabID: nil)], splitColumnShares: [], cards: [],
-            unavailableCommands: [.reloadPage])
+            unavailableCommands: [.reloadPage], returnTabID: nil)
         model.update(next)
         XCTAssertEqual(model.value, next)
         XCTAssertFalse(model.shownTabIDs.contains(value.shownTabs[0].tabID ?? UUID()))
@@ -157,7 +157,7 @@ final class CoreReadModelTests: XCTestCase {
                 WindowChanged(
                     window: WindowState(
                         id: windowID, workspaceID: workspaceID, shownSpaceID: UUID(), shownTabs: [],
-                        splitColumnShares: [], cards: [], unavailableCommands: [])
+                        splitColumnShares: [], cards: [], unavailableCommands: [], returnTabID: nil)
                 ).apply(to: detached)
             })
         let pageID = UUID()
@@ -166,7 +166,8 @@ final class CoreReadModelTests: XCTestCase {
             after: {
                 PageOpened(
                     page: PageState(
-                        id: pageID, workspaceID: workspaceID, spaceID: UUID(), tabID: nil, engine: .webKit,
+                        id: pageID, workspaceID: workspaceID, spaceID: UUID(), tabID: nil, windowID: UUID(),
+                        engine: .webKit,
                         phase: .opening, live: .blank)
                 ).apply(to: detached)
             })

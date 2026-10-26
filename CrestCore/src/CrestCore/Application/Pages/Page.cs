@@ -51,7 +51,7 @@ internal sealed class Page {
 
     public PagePhase Phase { get; private set; } = PagePhase.Opening;
 
-    public PageState State => new(Id, WorkspaceId, SpaceId, TabId, Engine.Kind, Phase, Live);
+    public PageState State => new(Id, WorkspaceId, SpaceId, TabId, WindowId, Engine.Kind, Phase, Live);
 
     /// What rules and views read of the page now: what its engine last showed,
     /// whether its history reaches back or forward, and why its latest

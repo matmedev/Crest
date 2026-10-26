@@ -51,24 +51,28 @@ extension BrowserStore {
     func openNewTab(
         url: URL,
         in spaceID: UUID,
-        selecting: Bool
+        selecting: Bool,
+        openedFrom opener: UUID? = nil
     ) -> UUID? {
         guard !isDeleting(spaceID), spaceModel(spaceID) != nil else { return nil }
         return openSessionTab(
-            .page(url), in: spaceID, insertingAfter: selectedTabID(in: spaceID), shouldSelect: selecting)
+            .page(url), in: spaceID, insertingAfter: selectedTabID(in: spaceID), shouldSelect: selecting,
+            openedFrom: opener)
     }
 
     @discardableResult
     func openNewTab(
         url: URL,
         matching assignment: BrowserSpaceRuntimeAssignment,
-        selecting: Bool = true
+        selecting: Bool = true,
+        openedFrom opener: UUID? = nil
     ) -> UUID? {
         guard spaceModel(matching: assignment) != nil else { return nil }
         return openNewTab(
             url: url,
             in: assignment.spaceID,
-            selecting: selecting
+            selecting: selecting,
+            openedFrom: opener
         )
     }
 
@@ -76,17 +80,22 @@ extension BrowserStore {
     /// person asked from a link or the palette, and confirms it. Tabs opened
     /// for anyone else, such as an agent, use `openNewTab`.
     @discardableResult
-    func openBackgroundTab(url: URL, in spaceID: UUID) -> UUID? {
-        guard let tabID = openNewTab(url: url, in: spaceID, selecting: false) else { return nil }
+    func openBackgroundTab(url: URL, in spaceID: UUID, openedFrom opener: UUID? = nil) -> UUID? {
+        guard let tabID = openNewTab(url: url, in: spaceID, selecting: false, openedFrom: opener) else { return nil }
         interactionObserver?.browserDidOpenBackgroundTab()
         return tabID
     }
 
     /// Opens `url` in a new tab of Space `spaceID` for a modified link,
-    /// selected when `selecting`, and answers the tab with its Space.
+    /// selected when `selecting`, and answers the tab with its Space. The
+    /// link was followed in the tab the Space shows, which going back from
+    /// the new tab returns to.
     func openModifiedLink(_ url: URL, in spaceID: UUID, selecting: Bool) -> BrowserModifiedLinkRegistration? {
+        let opener = selectedTabID(in: spaceID)
         let opened =
-            selecting ? openNewTab(url: url, in: spaceID, selecting: true) : openBackgroundTab(url: url, in: spaceID)
+            selecting
+            ? openNewTab(url: url, in: spaceID, selecting: true, openedFrom: opener)
+            : openBackgroundTab(url: url, in: spaceID, openedFrom: opener)
         guard let tabID = opened,
             let space = spaceModel(spaceID),
             let tab = space.tabs.model(tabID)

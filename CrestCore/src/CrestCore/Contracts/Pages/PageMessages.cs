@@ -45,12 +45,12 @@ public sealed record OfferedWindowAdopted(Guid PageId, Guid SourcePageId, Guid W
 public sealed record PageChanged(PageState Page) : Change;
 
 /// One page this device hosts: the workspace and Space it belongs to, the tab
-/// that owns it, the engine that hosts it, where it stands there and its live
-/// state. A page without a tab belongs to a transient request: a Quick Window,
+/// that owns it, the window that hosts it, the engine that hosts it, where it
+/// stands there and its live state. A page without a tab belongs to a transient request: a Quick Window,
 /// a Peek, or one of its engine's own pages that Settings shows.
 [Observed]
-public sealed record PageState(Guid Id, Guid WorkspaceId, Guid SpaceId, Guid? TabId, EngineKind Engine, PagePhase Phase,
-    PageLiveState Live);
+public sealed record PageState(Guid Id, Guid WorkspaceId, Guid SpaceId, Guid? TabId, Guid WindowId, EngineKind Engine,
+    PagePhase Phase, PageLiveState Live);
 
 /// A page opened, and its engine is creating it.
 public sealed record PageOpened(PageState Page) : Change;

@@ -258,6 +258,21 @@ internal sealed class Pages(Device device, Engines engines, IClock clock, IIdSou
         }
     }
 
+    /// Closes `page`'s tab and shows the tab a link opened it from, as going
+    /// back from a tab with no earlier page does, when the window that hosts
+    /// the page returns there (see `Device.ReturnTab`). Anything else, and a
+    /// Space that refuses the close, changes nothing.
+    internal void ReturnToOpener(Page page, PageTurn turn) {
+        if (page.TabId is not { } tabId || device.Attached(page.WorkspaceId) is not { } workspace
+            || device.ReturnTab(page.WindowId, page.SpaceId, tabId) is not { } opener)
+            return;
+        try {
+            workspace.Handle(new CloseTab(page.WorkspaceId, page.WindowId, page.SpaceId, tabId, opener), clock.Now, ids, this);
+        } catch (Rejected) {
+            // The Space is locked.
+        }
+    }
+
     #endregion
 
     #region Actions - Queries

@@ -31,6 +31,19 @@ engine choice. The engine loads the page it made for a new window, so opener
 identity, writable blank windows, request bodies and the source profile
 survive.
 
+## Going back to the opener
+
+A tab a link opened in a window remembers the tab it was opened from: a
+modified click, an unmodified new-tab target or window, and a link opened in
+the current Space from a link menu. While that tab has no earlier page, going
+back closes it and selects the tab it was opened from, with any back gesture:
+the Back button, Command-[, a mouse's Back button, or a swipe. This applies to
+an open tab outside Split View whose opener is still in the same Space and
+window; a pinned or saved tab never closes this way. The link lasts while the
+window stays open and is not restored after a relaunch. Tabs settings turn it
+off with **Back returns to the opening tab** (`AppPreferences.ReturnsToOpenerOnBack`),
+and the window's `WindowState.ReturnTabId` names the tab going back returns to.
+
 ## Loading and residency
 
 Intentionally opened background links start immediately. Selecting the new tab

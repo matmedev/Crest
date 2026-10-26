@@ -75,12 +75,20 @@ final class WindowStateModel: ObservedModel, Identifiable {
     /// The commands the window cannot run now, each observed on its own, so a
     /// menu item redraws only when its own command changes.
     let unavailableCommands: ObservedSet<ShortcutCommand>
+    /// The tab going back from the shown tab returns to, closing it, when the
+    /// shown tab has no earlier page.
+    private(set) var returnTabID: UUID? {
+        get { observed(\.returnTabIDStorage, as: \.returnTabID) }
+        set { publish(newValue, into: \.returnTabIDStorage, as: \.returnTabID) }
+    }
+    @ObservationIgnored private var returnTabIDStorage: UUID?
 
     var value: WindowState {
         WindowState(
             id: id, workspaceID: workspaceID, shownSpaceID: shownSpaceID, shownTabs: shownTabs,
             splitColumnShares: splitColumnShares, cards: cards,
-            unavailableCommands: ShortcutCommand.all.filter(unavailableCommands.members.contains))
+            unavailableCommands: ShortcutCommand.all.filter(unavailableCommands.members.contains),
+            returnTabID: returnTabID)
     }
 
     // MARK: - Initializers
@@ -94,6 +102,7 @@ final class WindowStateModel: ObservedModel, Identifiable {
         cardsStorage = value.cards
         shownTabIDs = ObservedSet(Set(value.shownTabs.compactMap(\.tabID)))
         unavailableCommands = ObservedSet(Set(value.unavailableCommands))
+        returnTabIDStorage = value.returnTabID
     }
 
     // MARK: - Actions - Reading
@@ -134,6 +143,7 @@ final class WindowStateModel: ObservedModel, Identifiable {
         cards = value.cards
         shownTabIDs.replace(with: Set(value.shownTabs.compactMap(\.tabID)))
         unavailableCommands.replace(with: Set(value.unavailableCommands))
+        returnTabID = value.returnTabID
         // Store the whole record before announcing any scoped presentation.
         // A reader notified of one Space can already read the others' values.
         for (spaceID, presentation) in spacePresentations {

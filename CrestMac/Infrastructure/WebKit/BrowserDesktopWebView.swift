@@ -9,6 +9,9 @@ final class BrowserDesktopWebView: WKWebView {
     weak var focusRestoration: BrowserWebFocusRestorationController?
     weak var linkHover: BrowserLinkHoverController?
     weak var linkDrag: BrowserLinkDragController?
+    /// Follows the swipes back the page leaves alone while its tab returns to
+    /// the tab a link opened it from.
+    let returnSwipe = BrowserReturnSwipe()
 
     override func mouseDown(with event: NSEvent) {
         linkDrag?.mouseDown(event)

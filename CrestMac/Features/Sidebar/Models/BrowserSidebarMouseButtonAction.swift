@@ -8,7 +8,7 @@ struct BrowserSidebarMouseButtonAction: Equatable, Sendable {
 
     static let previousSpace = Self(
         name: "previousSpace", buttonNumber: 3, swipeSign: 1, spaceDirection: .previous,
-        canNavigate: { $0.live.canGoBack }, navigate: { $0.goBack() })
+        canNavigate: { $0.canGoBack }, navigate: { $0.goBack() })
     static let nextSpace = Self(
         name: "nextSpace", buttonNumber: 4, swipeSign: -1, spaceDirection: .next,
         canNavigate: { $0.live.canGoForward }, navigate: { $0.goForward() })

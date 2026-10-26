@@ -98,6 +98,25 @@ internal sealed partial class Device {
         }
     }
 
+    /// The tab going back from `tabId` of `spaceId` in the open window
+    /// `windowId` returns to (see `Window.ReturnTab`), or null when the app's
+    /// preferences keep going back to a tab's history, or none qualifies.
+    internal Guid? ReturnTab(Guid windowId, Guid spaceId, Guid tabId) {
+        Window? window;
+        NativeSessionAuthority? authority;
+        AppPreferences? kept;
+        lock (gate) {
+            window = open.GetValueOrDefault(windowId);
+            authority = window is null ? null : workspaces.GetValueOrDefault(window.WorkspaceId);
+            kept = persistentPreferences;
+        }
+        // The session is read outside the device lock, as the windows' rules read it.
+        if (window is null || authority?.Current is not { } session || session.Space(spaceId) is not { } space
+            || !(session.AppPreferences ?? kept ?? AppPreferences.Default).ReturnsToOpenerOnBack)
+            return null;
+        lock (gate) return window.ReturnTab(space, tabId);
+    }
+
     /// The attached workspace, or `UnknownWorkspace`.
     internal NativeSessionAuthority Workspace(Guid workspaceId) {
         lock (gate)

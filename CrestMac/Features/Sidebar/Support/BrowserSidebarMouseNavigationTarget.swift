@@ -12,6 +12,9 @@ protocol BrowserSidebarMouseNavigationTarget: AnyObject {
     /// What the page shows as the core holds it, including whether it can go
     /// back or forward.
     var live: PageLiveState { get }
+    /// Whether going back steps through the page's history or returns to the
+    /// tab a link opened its tab from.
+    var canGoBack: Bool { get }
     func goBack()
     func goForward()
 }

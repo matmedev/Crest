@@ -74,6 +74,9 @@ internal sealed partial class Device {
     private readonly List<TabGroupRecord> keptTabGroups = [];
     private Guid? persistentWorkspace;
     internal Guid? PersistentWorkspace => persistentWorkspace;
+    /// The app's preferences as the persistent session last published them,
+    /// which the state of a window over a session that keeps none reads.
+    private AppPreferences? persistentPreferences;
     private long lastUse;
     internal long LastUse { get => lastUse; set => lastUse = value; }
 
@@ -141,8 +144,10 @@ internal sealed partial class Device {
     /// window shows, with the selection an older release kept in it.
     public void AttachPersistent(NativeSessionAuthority authority, JsonObject? legacySelection, Guid workspaceId) {
         Attach(authority, workspaceId);
+        var preferences = authority.Current.AppPreferences;
         lock (gate) {
             persistentWorkspace = workspaceId;
+            persistentPreferences = preferences;
             legacyTabs = LegacyTabs(legacySelection);
         }
     }
@@ -222,8 +227,10 @@ internal sealed partial class Device {
     /// changed is published first, then what the command did that the states
     /// cannot tell, then each window that shows something else. The window
     /// that issued the command takes what it chose to show, and every window
-    /// over the workspace is repaired against `next`. Called with no session
-    /// lock held.
+    /// over the workspace is repaired against `next`. When the persistent
+    /// session changes whether going back returns to a tab's opener, the
+    /// windows over sessions that keep no preferences of their own follow it.
+    /// Called with no session lock held.
     public void SessionPublished(Guid workspaceId, SessionState previous, SessionState next, WindowFollowUp? followUp,
         SessionTabEvents events) {
         ArgumentNullException.ThrowIfNull(previous);
@@ -232,7 +239,12 @@ internal sealed partial class Device {
         var changes = new List<Change>(SessionChanges.Publish(workspaceId, previous, next));
         changes.AddRange(events.Changes(workspaceId));
         NativeSessionAuthority? owner;
+        bool returnChanged = false;
         lock (gate) {
+            if (workspaceId == persistentWorkspace) {
+                returnChanged = ReturnsToOpener(persistentPreferences) != ReturnsToOpener(next.AppPreferences);
+                persistentPreferences = next.AppPreferences;
+            }
             changes.AddRange(Changing(open.Values.Where(window => window.WorkspaceId == workspaceId), window => {
                 if (followUp is not null && window.Id == followUp.Window?.Id) window.Apply(followUp);
                 window.Repair(next);
@@ -245,8 +257,28 @@ internal sealed partial class Device {
         }
         foreach (var change in changes) announce(change);
         RememberPublished(workspaceId, previous, next);
+        if (returnChanged) RepublishFollowingPreferences(workspaceId);
         if (owner is not null) FollowOwner(owner);
     }
+
+    /// Publishes again the windows over every workspace but `except` whose
+    /// session keeps no preferences of its own, so their states read the
+    /// persistent session's. Called with no lock held.
+    private void RepublishFollowingPreferences(Guid except) {
+        List<(Guid WorkspaceId, NativeSessionAuthority Authority)> following;
+        lock (gate) following = [.. workspaces.Where(entry => entry.Key != except).Select(entry => (entry.Key, entry.Value))];
+        var changes = new List<Change>();
+        foreach (var (workspaceId, authority) in following) {
+            // The session is read outside the device lock, as the windows' rules read it.
+            var session = authority.Current;
+            if (session.AppPreferences is not null) continue;
+            lock (gate) changes.AddRange(Changing(open.Values.Where(window => window.WorkspaceId == workspaceId), _ => { }, session));
+        }
+        foreach (var change in changes) announce(change);
+    }
+
+    private static bool ReturnsToOpener(AppPreferences? preferences) =>
+        (preferences ?? AppPreferences.Default).ReturnsToOpenerOnBack;
 
     /// Each workspace that borrows a Space from `owner` follows what `owner`
     /// accepted: its Space takes the owner's settings, published as its own
@@ -295,7 +327,8 @@ internal sealed partial class Device {
     /// device last published for it, keeping a saved window's record current
     /// with what it chose to show. The caller holds the device lock.
     internal WindowChanged? Publishing(Window window, SessionState session) {
-        var state = window.State(session, workspaces.GetValueOrDefault(window.WorkspaceId)?.Kind.IsPrivate == true);
+        var state = window.State(session, workspaces.GetValueOrDefault(window.WorkspaceId)?.Kind.IsPrivate == true,
+            (session.AppPreferences ?? persistentPreferences ?? AppPreferences.Default).ReturnsToOpenerOnBack);
         published.TryGetValue(window.Id, out var before);
         if (state == before) return null;
         published[window.Id] = state;
