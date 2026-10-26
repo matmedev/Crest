@@ -193,6 +193,14 @@ final class BrowserCommandPaletteModel {
         if let answer = try? browser.core.query(question(for: initialQuery)) { show(answer, for: sequence) }
     }
 
+    // MARK: - Actions - Editing
+
+    /// `text` as the single-line field takes it: each run of line breaks,
+    /// with the spaces around it, is one space, and a tab is a space.
+    static func singleLine(_ text: String) -> String {
+        text.replacing(#/\h*(?:\R\h*)+/#, with: " ").replacingOccurrences(of: "\t", with: " ")
+    }
+
     // MARK: - Actions - Completion
 
     func updateCompletionEditing(text: String, selection: NSRange, isComposing: Bool) {

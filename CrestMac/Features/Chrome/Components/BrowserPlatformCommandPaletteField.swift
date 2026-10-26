@@ -26,7 +26,7 @@ struct BrowserPlatformCommandPaletteField: NSViewRepresentable {
     }
 
     func makeField(coordinator: Coordinator) -> NSTextField {
-        let field = NSTextField(string: model.query)
+        let field = SingleLineField(string: model.query)
         field.isBordered = false
         field.drawsBackground = false
         field.font = .preferredFont(forTextStyle: .title2)
@@ -300,6 +300,50 @@ struct BrowserPlatformCommandPaletteField: NSViewRepresentable {
             default:
                 return false
             }
+        }
+    }
+
+    /// A field whose editor joins the lines of text pasted or dropped into
+    /// it, so it shows all of what it holds.
+    final class SingleLineField: NSTextField {
+        override class var cellClass: AnyClass? {
+            get { SingleLineCell.self }
+            set {}
+        }
+    }
+
+    final class SingleLineCell: NSTextFieldCell {
+        private lazy var editor: SingleLineEditor = {
+            let editor = SingleLineEditor()
+            editor.isFieldEditor = true
+            editor.isRichText = false
+            editor.allowsUndo = true
+            return editor
+        }()
+
+        override func fieldEditor(for controlView: NSView) -> NSTextView? { editor }
+    }
+
+    /// Paste, drop and Services read text through `readSelection`.
+    final class SingleLineEditor: NSTextView {
+        override func readSelection(from pboard: NSPasteboard) -> Bool {
+            insertSingleLine(from: pboard) ?? super.readSelection(from: pboard)
+        }
+
+        override func readSelection(from pboard: NSPasteboard, type: NSPasteboard.PasteboardType) -> Bool {
+            insertSingleLine(from: pboard) ?? super.readSelection(from: pboard, type: type)
+        }
+
+        /// Inserts the pasteboard's text joined into one line, or answers nil
+        /// when the text is already one line so AppKit reads it as usual.
+        private func insertSingleLine(from pboard: NSPasteboard) -> Bool? {
+            guard let text = pboard.string(forType: .string) else { return nil }
+            let line = BrowserCommandPaletteModel.singleLine(text)
+            guard line != text else { return nil }
+            breakUndoCoalescing()
+            insertText(line, replacementRange: selectedRange())
+            breakUndoCoalescing()
+            return true
         }
     }
 
