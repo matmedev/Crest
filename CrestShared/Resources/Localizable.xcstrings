@@ -2073,6 +2073,9 @@
     "Also show" : {
 
     },
+    "Always" : {
+
+    },
     "Always List Results" : {
 
     },
@@ -8960,6 +8963,9 @@
         }
       }
     },
+    "On hover" : {
+
+    },
     "On-device Translation" : {
 
     },
@@ -12311,6 +12317,9 @@
 
     },
     "Show Original" : {
+
+    },
+    "Show path" : {
 
     },
     "Show Previous Spaces" : {

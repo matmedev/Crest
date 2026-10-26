@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// The address field's fill, border, and how it opens the command palette,
-/// on every Space on this device.
+/// The address field's path, fill, border, and how it opens the command
+/// palette, on every Space on this device.
 struct BrowserAddressAppearanceGroup: View {
     var space: BrowserSpaceAppearance?
     var showsPreview = false
@@ -14,6 +14,17 @@ struct BrowserAddressAppearanceGroup: View {
                 BrowserLookAndFeelPreview(space: space, focus: .addressField)
             }
         } content: {
+            CrestSettingRow("Show path", setting: pathVisibility.resettable("Show path")) {
+                Picker("Show path", selection: pathVisibility.binding) {
+                    ForEach(BrowserAddressPathVisibility.all, id: \.self) { visibility in
+                        Text(visibility.title).tag(visibility)
+                    }
+                }
+                .pickerStyle(.menu)
+                .labelsHidden()
+                .fixedSize()
+                .accessibilityLabel("Show path")
+            }
             CrestSettingSlider("Color fill", value: fill, readout: .percent(zero: "None", full: "Strong"))
             CrestSettingSlider("Border", value: border, readout: .percent(zero: "None", full: "Strong"))
             CrestSettingRow(
@@ -31,6 +42,12 @@ struct BrowserAddressAppearanceGroup: View {
                     .labelsHidden()
             }
         }
+    }
+
+    private var pathVisibility: CrestSettingValue<BrowserAddressPathVisibility> {
+        CrestSettingValue(
+            $appearance.address.pathVisibility,
+            default: BrowserLookAndFeelDefaults.address.pathVisibility)
     }
 
     private var fill: CrestSettingValue<Double> {
@@ -55,6 +72,7 @@ struct BrowserAddressAppearanceGroup: View {
 
     private var settings: [CrestResettableSetting] {
         [
+            pathVisibility.resettable("Show path"),
             fill.resettable("Color fill"),
             border.resettable("Border"),
             outline.resettable("Accent outline while editing"),

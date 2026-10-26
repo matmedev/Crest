@@ -47,6 +47,7 @@ final class BrowserAddressAppearance {
     /// Whether the field grows into the command palette and the palette
     /// shrinks back into it, rather than the palette opening in place.
     var animatesIntoCommandPalette = true { didSet { changed() } }
+    var pathVisibility = BrowserAddressPathVisibility.standard { didSet { changed() } }
     var color: BrandColor? { didSet { changed() } }
     /// Called after any choice changes, so its owner can save it.
     @ObservationIgnored var changed: () -> Void = {}
@@ -92,7 +93,7 @@ extension BrowserTabAppearance: @MainActor Codable {
 
 extension BrowserAddressAppearance: @MainActor Codable {
     private enum CodingKeys: String, CodingKey {
-        case fill, border, usesAccentWhenEditing, animatesIntoCommandPalette, color
+        case fill, border, usesAccentWhenEditing, animatesIntoCommandPalette, pathVisibility, color
     }
 
     convenience init(from decoder: Decoder) throws {
@@ -103,6 +104,9 @@ extension BrowserAddressAppearance: @MainActor Codable {
         usesAccentWhenEditing = (try? values.decode(Bool.self, forKey: .usesAccentWhenEditing)) ?? false
         animatesIntoCommandPalette =
             (try? values.decode(Bool.self, forKey: .animatesIntoCommandPalette)) ?? true
+        pathVisibility =
+            BrowserAddressPathVisibility.named(try? values.decode(String.self, forKey: .pathVisibility))
+            ?? .standard
         color = try? values.decode(BrandColor.self, forKey: .color)
     }
 
@@ -112,6 +116,7 @@ extension BrowserAddressAppearance: @MainActor Codable {
         try values.encode(border, forKey: .border)
         try values.encode(usesAccentWhenEditing, forKey: .usesAccentWhenEditing)
         try values.encode(animatesIntoCommandPalette, forKey: .animatesIntoCommandPalette)
+        try values.encode(pathVisibility.name, forKey: .pathVisibility)
         try values.encodeIfPresent(color, forKey: .color)
     }
 }

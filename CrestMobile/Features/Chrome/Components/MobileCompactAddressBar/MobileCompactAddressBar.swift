@@ -95,6 +95,7 @@ struct MobileCompactAddressBar: View {
         .padding(.horizontal, 14)
         .frame(maxWidth: .infinity, minHeight: 48)
         .contentShape(.capsule)
+        .tracksBrowserAddressFieldHover(isEditing: isEditing)
         .background {
             fieldShape
                 .fill(.tint.opacity(isLoading ? 0.2 : 0))

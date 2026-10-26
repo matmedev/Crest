@@ -24,6 +24,9 @@ struct BrowserAddressContent: View {
     var centeringField: NamedCoordinateSpace?
     let submit: () -> Void
 
+    @Environment(\.browserAddressFieldIsHovered) private var isFieldHovered
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     @FocusState private var isFocused: Bool
     @State private var selection: TextSelection?
     /// How much farther the field reaches past the address's leading edge
@@ -175,14 +178,20 @@ struct BrowserAddressContent: View {
                 .lineLimit(1)
                 .truncationMode(.middle)
 
-            if let route = presentation.route {
+            if let route = presentation.route, showsPath {
                 Text(route)
                     .font(.caption2)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
                     .truncationMode(.middle)
+                    .transition(.opacity)
             }
         }
+        .animation(CrestMotion.hover.unlessReducingMotion(reduceMotion), value: showsPath)
+    }
+
+    private var showsPath: Bool {
+        BrowserDeviceAppearanceStore.shared.address.pathVisibility.showsPath(isHovered: isFieldHovered)
     }
 
     // MARK: - Actions - Centering

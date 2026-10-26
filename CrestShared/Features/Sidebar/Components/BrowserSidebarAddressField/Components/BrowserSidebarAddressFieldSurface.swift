@@ -26,6 +26,7 @@ struct BrowserSidebarAddressFieldSurface: ViewModifier {
                 .padding(.leading, leadingPadding ?? metrics.horizontalPadding)
                 .padding(.trailing, metrics.horizontalPadding)
         )
+        .tracksBrowserAddressFieldHover(isEditing: isEditing)
         .background {
             ZStack(alignment: .leading) {
                 CrestSurfaceLayer(shape: fieldShape)
