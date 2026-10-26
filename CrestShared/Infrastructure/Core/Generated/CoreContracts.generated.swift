@@ -1066,6 +1066,7 @@ struct AppPreferences: Equatable, Sendable {
         splitFocusFollowsMouse: false,
         automaticallyShowsDeveloperToolbar: true,
         showsRecentTabs: true,
+        asksBeforeQuitting: true,
         palette: PalettePreferences(
             layout: PaletteLayout.sections,
             sources: [
@@ -1103,6 +1104,7 @@ struct AppPreferences: Equatable, Sendable {
     var splitFocusFollowsMouse: Bool
     var automaticallyShowsDeveloperToolbar: Bool
     var showsRecentTabs: Bool
+    var asksBeforeQuitting: Bool
     var palette: PalettePreferences
 }
 

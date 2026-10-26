@@ -2279,6 +2279,9 @@
         }
       }
     },
+    "Ask before quitting with ⌘Q" : {
+
+    },
     "Ask where to save" : {
 
     },
@@ -10329,7 +10332,13 @@
     "Quit and cancel the download in progress?" : {
 
     },
+    "Quit and Don’t Ask Again" : {
+
+    },
     "Quit Crest" : {
+
+    },
+    "Quit Crest?" : {
 
     },
     "Ran a script" : {

@@ -83,6 +83,12 @@ final class BrowserAppPreferenceStore {
         set { set { $0.showsRecentTabs = newValue } }
     }
 
+    /// Whether ⌘Q asks before quitting, on the Mac.
+    var asksBeforeQuitting: Bool {
+        get { preferences.asksBeforeQuitting }
+        set { set { $0.asksBeforeQuitting = newValue } }
+    }
+
     /// How the command palette ranks and arranges what it offers.
     var palette: PalettePreferences {
         get { preferences.palette }

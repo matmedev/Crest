@@ -129,6 +129,11 @@ final class BrowserMacWindows {
         controller(showing: NSApp.keyWindow) != nil
     }
 
+    /// Whether a browser or private window is open, whose tabs a quit closes.
+    var isPageWindowOpen: Bool {
+        controllers.contains { $0.kind.hasPageRow }
+    }
+
     /// The window a Dock click brings forward: the browser window the person
     /// used, or else the private window, a Quick Window or setup.
     var windowToBringForward: BrowserMacWindowController? {

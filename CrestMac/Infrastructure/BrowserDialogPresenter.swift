@@ -8,6 +8,17 @@ struct BrowserFileInputOptions {
     let allowsMultipleSelection: Bool
 }
 
+/// The answer to whether ⌘Q quits: whether Crest quits, and whether ⌘Q asks
+/// again next time.
+struct BrowserQuitConfirmation {
+    static let quit = BrowserQuitConfirmation(quits: true, keepsAsking: true)
+    static let cancel = BrowserQuitConfirmation(quits: false, keepsAsking: true)
+    static let quitWithoutAskingAgain = BrowserQuitConfirmation(quits: true, keepsAsking: false)
+
+    let quits: Bool
+    let keepsAsking: Bool
+}
+
 @MainActor
 final class BrowserDialogPresenter {
     // MARK: - Variables
@@ -567,6 +578,24 @@ final class BrowserDialogPresenter {
             alert.addButton(withTitle: String(localized: "Quit"))
             present(alert, comesForward: true, dismissal: dismissal) { response in
                 continuation.resume(returning: response == .alertSecondButtonReturn)
+            }
+        }
+    }
+
+    /// Whether ⌘Q quits, which Return confirms and Escape cancels, or quits
+    /// and stops asking.
+    func confirmQuit() async -> BrowserQuitConfirmation {
+        await withCheckedContinuation { continuation in
+            let alert = NSAlert()
+            alert.messageText = String(localized: "Quit Crest?")
+            alert.addButton(withTitle: String(localized: "Quit"))
+            alert.addButton(withTitle: String(localized: "Cancel"))
+            alert.addButton(withTitle: String(localized: "Quit and Don’t Ask Again"))
+            present(alert) { response in
+                let answers: [NSApplication.ModalResponse: BrowserQuitConfirmation] = [
+                    .alertFirstButtonReturn: .quit, .alertThirdButtonReturn: .quitWithoutAskingAgain,
+                ]
+                continuation.resume(returning: answers[response] ?? .cancel)
             }
         }
     }

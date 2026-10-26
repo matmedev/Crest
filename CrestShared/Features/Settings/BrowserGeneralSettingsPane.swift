@@ -69,6 +69,13 @@ struct BrowserGeneralSettingsPane: View {
                 )
             }
 
+            #if os(macOS)
+                Section {
+                    Toggle("Ask before quitting with ⌘Q", isOn: $appPreferences.asksBeforeQuitting)
+                        .accessibilityIdentifier("asks-before-quitting")
+                }
+            #endif
+
             #if os(iOS)
                 Section("Sidebar") {
                     Toggle("Allow floating sidebar", isOn: $allowsFloatingSidebar)

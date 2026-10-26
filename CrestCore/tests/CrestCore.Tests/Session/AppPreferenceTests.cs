@@ -53,6 +53,16 @@ public sealed partial class BrowserContractsTests {
     }
 
     [Fact]
+    public void ARecordFromBeforeTheQuitQuestionAsksBeforeQuitting() {
+        var session = SavedSession().Document["session"]!.AsObject();
+        session["appPreferences"] = new JsonObject { ["startupBehavior"] = "lastActiveTab", ["showsRecentTabs"] = false };
+        using var device = new TestDevice(session);
+        var preferences = device.Authority.Current.AppPreferences!;
+        Assert.False(preferences.ShowsRecentTabs);
+        Assert.True(preferences.AsksBeforeQuitting);
+    }
+
+    [Fact]
     public void CloudReplacementNeverCarriesOrReplacesAppPreferences() {
         var fixture = SavedSession(); var session = fixture.Document["session"]!.AsObject();
         session["appPreferences"] = new JsonObject { ["startupBehavior"] = "lastActiveTab", ["futureChoice"] = 3 };
