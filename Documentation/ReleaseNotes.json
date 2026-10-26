@@ -4593,6 +4593,10 @@
     "address-field-path-visibility": {
       "category": "new",
       "message": "Choose whether the address field shows a page's path always, on hover, or never."
+    },
+    "address-field-hover-after-editing": {
+      "category": "internal",
+      "message": "With the path shown on hover, the address field shows it again once the pointer moves over the field after editing or the command palette ends."
     }
   }
 }

@@ -4,7 +4,9 @@ import SwiftUI
 /// a path shown only on hover can appear.
 ///
 /// Editing forgets the hover: the command palette covers the field as it
-/// opens, and the field may never hear the pointer leave while covered.
+/// opens, and the field may never hear the pointer leave while covered. The
+/// pointer's next move over the field brings it back, since a pointer resting
+/// there when editing ends never enters it again.
 struct BrowserAddressFieldHoverTracking: ViewModifier {
     let isEditing: Bool
 
@@ -13,7 +15,12 @@ struct BrowserAddressFieldHoverTracking: ViewModifier {
     func body(content: Content) -> some View {
         content
             .environment(\.browserAddressFieldIsHovered, isHovered && !isEditing)
-            .onHover { isHovered = $0 }
+            .onContinuousHover { phase in
+                switch phase {
+                case .active: isHovered = true
+                case .ended: isHovered = false
+                }
+            }
             .onChange(of: isEditing) { _, editing in
                 if editing { isHovered = false }
             }
