@@ -4593,6 +4593,10 @@
     "command-palette-multiline-paste": {
       "category": "improved",
       "message": "Text pasted into the command palette joins its lines into one search."
+    },
+    "command-palette-paste-editable-range": {
+      "category": "internal",
+      "message": "The command palette inserts joined pasted text only into the range AppKit allows the person to edit."
     }
   }
 }

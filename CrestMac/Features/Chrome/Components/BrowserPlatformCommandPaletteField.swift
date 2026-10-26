@@ -339,9 +339,10 @@ struct BrowserPlatformCommandPaletteField: NSViewRepresentable {
         private func insertSingleLine(from pboard: NSPasteboard) -> Bool? {
             guard let text = pboard.string(forType: .string) else { return nil }
             let line = BrowserCommandPaletteModel.singleLine(text)
-            guard line != text else { return nil }
+            let range = rangeForUserTextChange
+            guard line != text, range.location != NSNotFound else { return nil }
             breakUndoCoalescing()
-            insertText(line, replacementRange: selectedRange())
+            insertText(line, replacementRange: range)
             breakUndoCoalescing()
             return true
         }
