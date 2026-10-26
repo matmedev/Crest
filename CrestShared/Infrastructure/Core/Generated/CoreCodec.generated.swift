@@ -7,7 +7,7 @@ import Foundation
 enum CoreCodec {
     /// SHA-256 of the canonical contract schema. The core refuses any other.
     static let fingerprint: [UInt8] = [
-        0x2e, 0xd4, 0xbb, 0xcf, 0xf3, 0x7d, 0xf6, 0x2f, 0x29, 0x89, 0x33, 0xd5, 0x21, 0x69, 0x58, 0xb8, 0x9d, 0x7f, 0x2a, 0x12, 0x80, 0x3b, 0x72, 0x87, 0x99, 0x66, 0x36, 0xdf, 0x66, 0xed, 0x13, 0x70
+        0xfb, 0xab, 0x52, 0x12, 0x87, 0x28, 0x87, 0x12, 0x0e, 0x9b, 0x7d, 0x04, 0xfe, 0x58, 0x04, 0x41, 0x8a, 0xb2, 0x4b, 0x71, 0xd7, 0xd2, 0xae, 0xcf, 0x36, 0xf5, 0x49, 0xd4, 0x8f, 0x2e, 0x8c, 0x51
     ]
     /// SHA-256 of the engine contract alone, which an engine binding registers with.
     static let engineFingerprint: [UInt8] = [
@@ -3054,13 +3054,39 @@ extension ArchivedTabState {
         let tab = try TabState(from: &reader)
         let archivedAt = try reader.readDate()
         let reason = try ArchiveReason(from: &reader)
-        self.init(tab: tab, archivedAt: archivedAt, reason: reason)
+        let previousTabID: UUID?
+        if try reader.readPresence() {
+            let previousTabIDValue = try reader.readUUID()
+            previousTabID = previousTabIDValue
+        } else {
+            previousTabID = nil
+        }
+        let nextTabID: UUID?
+        if try reader.readPresence() {
+            let nextTabIDValue = try reader.readUUID()
+            nextTabID = nextTabIDValue
+        } else {
+            nextTabID = nil
+        }
+        self.init(tab: tab, archivedAt: archivedAt, reason: reason, previousTabID: previousTabID, nextTabID: nextTabID)
     }
 
     func encode(into writer: inout WireWriter) {
         tab.encode(into: &writer)
         writer.writeDate(archivedAt)
         reason.encode(into: &writer)
+        if let present0 = previousTabID {
+            writer.writePresence(true)
+            writer.writeUUID(present0)
+        } else {
+            writer.writePresence(false)
+        }
+        if let present0 = nextTabID {
+            writer.writePresence(true)
+            writer.writeUUID(present0)
+        } else {
+            writer.writePresence(false)
+        }
     }
 }
 
@@ -3069,13 +3095,39 @@ extension ArchivedTabState.Seed {
         let tab = try TabState.Seed(from: &reader)
         let archivedAt = try reader.readDate()
         let reason = try ArchiveReason(from: &reader)
-        self.init(tab: tab, archivedAt: archivedAt, reason: reason)
+        let previousTabID: UUID?
+        if try reader.readPresence() {
+            let previousTabIDValue = try reader.readUUID()
+            previousTabID = previousTabIDValue
+        } else {
+            previousTabID = nil
+        }
+        let nextTabID: UUID?
+        if try reader.readPresence() {
+            let nextTabIDValue = try reader.readUUID()
+            nextTabID = nextTabIDValue
+        } else {
+            nextTabID = nil
+        }
+        self.init(tab: tab, archivedAt: archivedAt, reason: reason, previousTabID: previousTabID, nextTabID: nextTabID)
     }
 
     func encode(into writer: inout WireWriter) {
         tab.encode(into: &writer)
         writer.writeDate(archivedAt)
         reason.encode(into: &writer)
+        if let present0 = previousTabID {
+            writer.writePresence(true)
+            writer.writeUUID(present0)
+        } else {
+            writer.writePresence(false)
+        }
+        if let present0 = nextTabID {
+            writer.writePresence(true)
+            writer.writeUUID(present0)
+        } else {
+            writer.writePresence(false)
+        }
     }
 }
 

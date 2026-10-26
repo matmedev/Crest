@@ -74,10 +74,12 @@ internal static partial class StoredSessionCodec {
 
     /// An archived tab. Its reason is spelled so older builds can read it, with
     /// a deletion origin for the two deletions. An unknown cause is a close.
+    /// The tabs it sat between are optional, as older builds wrote none.
     internal static ArchivedTabState DecodeArchivedTab(JsonNode? node) {
         var value = Object(node);
         var reason = ArchiveReason.Stored(Text(value[Key.Reason]), Text(value[Key.DeletionOrigin])) ?? ArchiveReason.Closed;
-        return new(DecodeTab(value[Key.Tab]), Date(value[Key.ArchivedAt]), reason);
+        return new(DecodeTab(value[Key.Tab]), Date(value[Key.ArchivedAt]), reason,
+            OptionalIdentity(value[Key.PreviousTabId]), OptionalIdentity(value[Key.NextTabId]));
     }
 
     internal static JsonObject Encode(ArchivedTabState archived) {
@@ -87,6 +89,8 @@ internal static partial class StoredSessionCodec {
             [Key.Reason] = archived.Reason.StoredReason
         };
         Put(value, Key.DeletionOrigin, archived.Reason.DeletionOrigin);
+        if (archived.PreviousTabId is { } previous) value[Key.PreviousTabId] = WrappedIdentity(previous);
+        if (archived.NextTabId is { } next) value[Key.NextTabId] = WrappedIdentity(next);
         return value;
     }
 

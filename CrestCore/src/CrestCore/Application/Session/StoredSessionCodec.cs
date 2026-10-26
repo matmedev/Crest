@@ -96,6 +96,7 @@ internal static partial class StoredSessionCodec {
         public const string Location = "location";
         public const string Name = "name";
         public const string NativeContent = "nativeContent";
+        public const string NextTabId = "nextTabID";
         public const string OffersTranslation = "offersTranslation";
         public const string OperationId = "operationID";
         public const string OrderAnchorTabId = "orderAnchorTabID";
@@ -106,6 +107,7 @@ internal static partial class StoredSessionCodec {
         public const string Placement = "placement";
         public const string PositionModifiedAt = "positionModifiedAt";
         public const string PrefersOpenTabs = "prefersOpenTabs";
+        public const string PreviousTabId = "previousTabID";
         public const string ProviderSpaceTrigger = "providerSpaceTrigger";
         public const string Profile = "profile";
         public const string ProfileId = "profileID";

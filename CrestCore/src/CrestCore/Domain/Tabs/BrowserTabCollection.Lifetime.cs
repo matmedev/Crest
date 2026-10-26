@@ -13,16 +13,47 @@ public sealed partial class BrowserTabCollection {
         archive.Add(new(closed, now, ArchiveReason.QuickWindow));
     }
 
-    public BrowserTab RestoreArchived(TabState source, DateTimeOffset now) {
-        var tab = BrowserTab.Restore(source with {
+    /// Reopens `archived` as an open tab, in its folder while that folder is
+    /// still open, where `RestoredIndex` finds its place.
+    public BrowserTab RestoreArchived(ArchivedTabState archived, DateTimeOffset now) {
+        var folder = archived.Tab.FolderId is { } id && folders.Any(f => f.Id == id && f.Location == TabPlacement.Current) ? id : (Guid?)null;
+        var tab = BrowserTab.Restore(archived.Tab with {
             Placement = TabPlacement.Current,
-            FolderId = null,
+            FolderId = folder,
             SplitGroupId = null,
             LastActivatedAt = now,
             PositionModifiedAt = BrowserEditTimestamp.Normalize(now)
         });
-        InsertTab(tab, null);
+        InsertTab(tab, RestoredIndex(archived, folder));
         return tab;
+    }
+
+    /// Where a restored tab returns: after the tab that sat above it, or else
+    /// before the one that sat below it, when that tab is still open, and
+    /// inside `folder` while the folder holds other tabs; or else at the top
+    /// of `folder`, or where it sits when empty. Null leaves the tab where its
+    /// section puts a new one.
+    private int? RestoredIndex(ArchivedTabState archived, Guid? folder) {
+        var subtree = folder is { } id ? new FolderTree(folders).Subtree(id) : [];
+        bool Within(BrowserTab tab) => tab.FolderId is { } member && subtree.Contains(member);
+        bool held = tabs.Any(Within);
+        BrowserTab? Beside(Guid? id) =>
+            tabs.FirstOrDefault(t => t.Id == id && t.Placement == TabPlacement.Current && (!held || Within(t)));
+        if (Beside(archived.PreviousTabId) is { } previous) return tabs.IndexOf(SplitMembers(previous.Id)[^1]) + 1;
+        if (Beside(archived.NextTabId) is { } next) return tabs.IndexOf(SplitMembers(next.Id)[0]);
+        if (folder is not { } restoredIn) return null;
+        if (held) return tabs.IndexOf(SplitMembers(tabs.First(Within).Id)[0]);
+        return folders.First(f => f.Id == restoredIn).OrderAnchorTabId is { } anchor && tabs.Any(t => t.Id == anchor)
+            ? tabs.IndexOf(SplitMembers(anchor)[0]) : tabs.Count;
+    }
+
+    /// `value`, the archived form of `tab`, with the open tabs beside `tab`
+    /// in its section while it is still listed.
+    private ArchivedTabState Archived(BrowserTab tab, TabState value, DateTimeOffset now, ArchiveReason reason) {
+        if (tab.Placement != TabPlacement.Current) return new(value, now, reason);
+        int index = tabs.IndexOf(tab);
+        Guid? Beside(int at) => at >= 0 && at < tabs.Count && tabs[at].Placement == TabPlacement.Current ? tabs[at].Id : null;
+        return new(value, now, reason, Beside(index - 1), Beside(index + 1));
     }
 
     /// Puts a saved or pinned tab's page away, returning the tab to its saved
@@ -44,7 +75,7 @@ public sealed partial class BrowserTabCollection {
         var ids = expired.Select(t => t.Id).ToHashSet();
         var nextFolders = new FolderTree(folders).PreserveOrder(ids, tabs);
         foreach (var tab in expired)
-            archive.Add(new(tab.State with { SplitGroupId = null }, now, ArchiveReason.AutoCleanup));
+            archive.Add(Archived(tab, tab.State with { SplitGroupId = null }, now, ArchiveReason.AutoCleanup));
         tabs.RemoveAll(t => ids.Contains(t.Id));
         folders.Clear(); folders.AddRange(nextFolders);
         // Maintenance preserves an empty selection and does not dissolve a

@@ -46,8 +46,11 @@ public sealed record SpaceDeletionState(Guid Id, Guid SpaceId, Guid ProfileId);
 
 #region Models - Tabs
 
-/// <summary>A tab in its Space's archive, when it arrived there and why.</summary>
-public sealed record ArchivedTabState(TabState Tab, DateTimeOffset ArchivedAt, ArchiveReason Reason);
+/// <summary>A tab in its Space's archive, when it arrived there and why. An open tab
+/// keeps the tabs that sat above and below it, so a restore can put it back between
+/// them; they stay on this device and never sync.</summary>
+public sealed record ArchivedTabState(TabState Tab, DateTimeOffset ArchivedAt, ArchiveReason Reason,
+    Guid? PreviousTabId = null, Guid? NextTabId = null);
 
 /// <summary>A native view a tab shows instead of a web page. <see cref="Kind"/> stays
 /// open so a view another build added survives here; <see cref="ResourceId"/> names a

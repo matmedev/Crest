@@ -1167,6 +1167,8 @@ struct ArchivedTabState: Equatable, Sendable {
     let tab: TabState
     let archivedAt: Date
     let reason: ArchiveReason
+    let previousTabID: UUID?
+    let nextTabID: UUID?
 
     /// The fields of a `ArchivedTabState` alone, as a platform builds one to send. The
     /// core resolves the rest when it reads it.
@@ -1174,11 +1176,13 @@ struct ArchivedTabState: Equatable, Sendable {
         var tab: TabState.Seed
         var archivedAt: Date
         var reason: ArchiveReason
+        var previousTabID: UUID?
+        var nextTabID: UUID?
     }
 
     /// The record's fields alone, as a platform sends it back.
     var seed: Seed {
-        Seed(tab: tab.seed, archivedAt: archivedAt, reason: reason)
+        Seed(tab: tab.seed, archivedAt: archivedAt, reason: reason, previousTabID: previousTabID, nextTabID: nextTabID)
     }
 }
 

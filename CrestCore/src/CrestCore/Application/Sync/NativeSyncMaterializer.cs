@@ -173,7 +173,7 @@ public static class NativeSyncMaterializer {
         var result = remote.Select(archived => {
             byId.TryGetValue(archived.Id, out var previous);
             return new ArchivedTabState(Tab(archived.Tab, previous?.Tab, archived: true), archived.ArchivedAt.Moment,
-                previous?.Reason ?? ArchiveReason.Received(archived.Reason.IsExplicitDeletion));
+                previous?.Reason ?? ArchiveReason.Received(archived.Reason.IsExplicitDeletion), previous?.PreviousTabId, previous?.NextTabId);
         }).ToList();
         var projected = result.Select(archived => archived.Tab.Id).ToHashSet();
         var localTabs = (local?.Tabs ?? []).Where(Portable).ToDictionary(tab => tab.Id);

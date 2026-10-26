@@ -18,7 +18,7 @@ public sealed record RestoreArchivedTab(Guid WorkspaceId, Guid WindowId, Guid Sp
             throw new Rejected(new TabAlreadyExists(TabId));
         var remaining = space with { ArchivedTabs = [.. space.ArchivedTabs.Where((_, position) => position != index)] };
         var edited = BrowserTabCollection.Restore(remaining);
-        var restored = edited.RestoreArchived(space.ArchivedTabs[index].Tab, turn.Now);
+        var restored = edited.RestoreArchived(space.ArchivedTabs[index], turn.Now);
         var followUp = new WindowFollowUp(workspace.IssuingWindow(WindowId)).ShowTab(space.Id, restored.Id);
         return new(turn.Basis.Replacing(edited.Capture(remaining)), SyncStaging.Creation, followUp);
     }

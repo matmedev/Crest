@@ -68,4 +68,40 @@ public sealed partial class BrowserContractsTests {
         Assert.Empty(core.Current.Spaces[0].SplitGroups);
     }
 
+    /// Reopening a closed tab puts it back between the open tabs it sat
+    /// between, in its folder while that folder stays, and still does once the
+    /// session is saved and read.
+    [Fact]
+    public void ReopeningAClosedTabPutsItBackWhereItWas() {
+        var f = new OrderSpace();
+        Guid[] order = [f.C1, f.A, f.B, f.N, f.C2, f.C3, f.C4, f.C5];
+        static Guid[] Open(TestDevice device) =>
+            [.. device.Authority.Current.Spaces[0].Tabs.Where(tab => tab.Placement == TabPlacement.Current).Select(tab => tab.Id)];
+        JsonNode saved;
+        using (var device = new TestDevice(f.Session)) {
+            var window = device.Open(f.Space, (f.Space, f.C5));
+
+            // The only tab of a folder returns to that folder's place.
+            device.Send(new CloseTab(device.Workspace, window, f.Space, f.C3));
+            device.Send(new ReopenClosedTab(device.Workspace, window, f.Space));
+            Assert.Equal(order, Open(device));
+            Assert.Equal(f.Open, device.Authority.Current.Spaces[0].Tabs.Single(tab => tab.Id == f.C3).FolderId);
+
+            // Neighbours closed together come back, the tab below a folder
+            // after it, and one closed after them on its own.
+            device.Send(new CloseTabs(device.Workspace, window, f.Space, new([f.C4, f.C5], [], [f.C4, f.C5])));
+            device.Send(new CloseTab(device.Workspace, window, f.Space, f.C2));
+            for (int i = 0; i < 3; i++) device.Send(new ReopenClosedTab(device.Workspace, window, f.Space));
+            Assert.Equal(order, Open(device));
+
+            device.Send(new CloseTab(device.Workspace, window, f.Space, f.C2));
+            saved = StoredSessionCodec.Encode(device.Authority.Current);
+        }
+        using (var device = new TestDevice(saved)) {
+            var window = device.Open(f.Space, (f.Space, f.C5));
+            device.Send(new ReopenClosedTab(device.Workspace, window, f.Space));
+            Assert.Equal(order, Open(device));
+        }
+    }
+
 }
