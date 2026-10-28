@@ -68,21 +68,27 @@ public sealed class ShortcutSpecialKey {
     /// A function key's number, counting from one.
     public int? FunctionKeyNumber { get; }
 
+    /// Whether the key makes a shortcut without a modifier. Only a key that
+    /// types nothing a page or text field expects stands alone.
+    public bool StandsAlone { get; }
+
     #endregion
 
     #region Constructors
 
-    private ShortcutSpecialKey(string name, string? glyph, string? spokenName, string? title = null, int? functionKeyNumber = null) {
+    private ShortcutSpecialKey(string name, string? glyph, string? spokenName, string? title = null, int? functionKeyNumber = null,
+        bool standsAlone = false) {
         Name = name;
         Glyph = glyph;
         Title = title;
         SpokenName = spokenName;
         FunctionKeyNumber = functionKeyNumber;
+        StandsAlone = standsAlone;
     }
 
     private static ShortcutSpecialKey FunctionKey(int number) {
         string digits = number.ToString(CultureInfo.InvariantCulture);
-        return new(name: "f" + digits, glyph: "F" + digits, spokenName: null, functionKeyNumber: number);
+        return new(name: "f" + digits, glyph: "F" + digits, spokenName: null, functionKeyNumber: number, standsAlone: true);
     }
 
     #endregion

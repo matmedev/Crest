@@ -7,7 +7,7 @@ keywords: [keyboard, shortcuts, commands, customize, rebind, Mac, iPad]
 
 # Keyboard shortcuts
 
-These are the current defaults. On Mac, open **Settings → Shortcuts** to search the whole catalog, record a new shortcut, clear an assignment, inspect conflicts, or restore the default. Commands marked **Unassigned** remain available from the menu and command palette.
+These are the current defaults. On Mac, open **Settings → Shortcuts** to search the whole catalog, record a new shortcut, clear an assignment, inspect conflicts, or restore the default. Commands marked **Unassigned** remain available from the menu and command palette. A shortcut includes Command, Option, Control or Shift, except a function key such as F12, which works on its own.
 
 ## Windows and navigation
 

@@ -2,8 +2,11 @@ struct BrowserShortcut: Codable, Equatable, Hashable, Sendable {
     let key: BrowserShortcutKey
     let modifiers: ShortcutModifiers
 
+    /// The core's rule: a shortcut holds a supported modifier, unless its key
+    /// stands alone.
     var isValid: Bool {
-        !modifiers.intersection(.supported).isEmpty
+        if case .special(let special) = key, special.standsAlone { return true }
+        return !modifiers.intersection(.supported).isEmpty
     }
 }
 

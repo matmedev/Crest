@@ -99,6 +99,12 @@ public sealed partial class BrowserContractsTests {
             Assert.Equal(new InvalidShortcut(new KeyCombination("hyper", true, ShortcutModifiers.Command)), Assert.Throws<Rejected>(() =>
                 app.Send(new ReassignShortcut(ShortcutCommand.NewTab, new KeyCombination("hyper", true, ShortcutModifiers.Command))))
                 .Rejection);
+            // A function key stands alone; every other key needs a modifier.
+            var escape = new KeyCombination(ShortcutSpecialKey.Escape.Name, true, ShortcutModifiers.None);
+            Assert.Equal(new InvalidShortcut(escape), Assert.Throws<Rejected>(() =>
+                app.Send(new AssignShortcut(ShortcutCommand.ShowWebInspector, escape))).Rejection);
+            var f12 = new KeyCombination(ShortcutSpecialKey.F12.Name, true, ShortcutModifiers.None);
+            Assert.Equal(f12, Bindings(app.Send(new AssignShortcut(ShortcutCommand.ShowWebInspector, f12)))[ShortcutCommand.ShowWebInspector].Keys);
 
             var assigned = Bindings(app.Send(new AssignShortcut(ShortcutCommand.NewTab, chord)));
             Assert.Equal(chord, assigned[ShortcutCommand.NewTab].Keys);
